@@ -1,0 +1,29 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes:
+    corporate --default,
+    halloween --prefersdark;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+html {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.content-bg-color {
+  background-color: oklch(var(--b2) / 0.6);
+}
