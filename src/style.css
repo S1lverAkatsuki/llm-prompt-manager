@@ -2,7 +2,7 @@
 @plugin "daisyui" {
   themes:
     corporate --default,
-    halloween --prefersdark;
+    dark --prefersdark;
 }
 
 html,
@@ -22,8 +22,4 @@ html {
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-.content-bg-color {
-  background-color: oklch(var(--b2) / 0.6);
 }

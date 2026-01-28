@@ -4,6 +4,47 @@ import { invoke } from "@tauri-apps/api/core";
 
 const greetMsg = ref("");
 const name = ref("");
+const expandedId = ref<number | null>(null);
+const copiedId = ref<number | null>(null);
+const copyTimeout = ref<NodeJS.Timeout | null>(null);
+
+// 示例数据
+const items = ref([
+  {
+    id: 1,
+    title: "标题",
+    preview: "小字",
+    content: "aaaa",
+    tags: ["tag1", "tag2"]
+  },
+  {
+    id: 2,
+    title: "标题",
+    preview: "小字",
+    content: "aaaa",
+    tags: ["tag1", "tag2"]
+  },
+]);
+
+const toggleExpand = (id: number) => expandedId.value = (expandedId.value === id) ? null : id;
+
+const handleCopy = async (id: number, content: string) => {
+  try {
+    await navigator.clipboard.writeText(content);
+    copiedId.value = id;
+
+    if (copyTimeout.value) {
+      clearTimeout(copyTimeout.value);
+    }
+
+    copyTimeout.value = setTimeout(() => {
+      copiedId.value = null;
+    }, 2000);
+  } catch (err) {
+    // 吞掉
+  }
+};
+
 
 async function greet() {
   greetMsg.value = await invoke("greet", { name: name.value });
@@ -19,8 +60,8 @@ async function greet() {
           class="text-primary font-bold text-xl shrink-0 hover:brightness-80 cursor-pointer" title="前往Github查看">
           LLM-Prompt-Manager
         </a>
-        <label class="swap swap-rotate btn btn-circle btn-ghost btn-sm text-base-content hover:bg-base-200">
-          <input type="checkbox" class="theme-controller" value="halloween" />
+        <label class="swap swap-rotate btn btn-circle btn-ghost btn-sm text-base-content hover:bg-base-300">
+          <input type="checkbox" class="theme-controller" value="dark" />
 
           <!-- sun icon -->
           <svg class="swap-off w-5 h-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -34,7 +75,7 @@ async function greet() {
               d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
           </svg>
         </label>
-        <button class="btn btn-circle btn-ghost btn-sm text-base-content hover:bg-base-200">
+        <button class="btn btn-circle btn-ghost btn-sm text-base-content hover:bg-base-300">
           <svg class="fill-current w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path
               d="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10M10,22C9.75,22 9.54,21.82 9.5,21.58L9.13,18.93C8.5,18.68 7.96,18.34 7.44,17.94L4.95,18.95C4.73,19.03 4.46,18.95 4.34,18.73L2.34,15.27C2.21,15.05 2.27,14.78 2.46,14.63L4.57,12.97L4.5,12L4.57,11L2.46,9.37C2.27,9.22 2.21,8.95 2.34,8.73L4.34,5.27C4.46,5.05 4.73,4.96 4.95,5.05L7.44,6.05C7.96,5.66 8.5,5.32 9.13,5.07L9.5,2.42C9.54,2.18 9.75,2 10,2H14C14.25,2 14.46,2.18 14.5,2.42L14.87,5.07C15.5,5.32 16.04,5.66 16.56,6.05L19.05,5.05C19.27,4.96 19.54,5.05 19.66,5.27L21.66,8.73C21.79,8.95 21.73,9.22 21.54,9.37L19.43,11L19.5,12L19.43,13L21.54,14.63C21.73,14.78 21.79,15.05 21.66,15.27L19.66,18.73C19.54,18.95 19.27,19.04 19.05,18.95L16.56,17.95C16.04,18.34 15.5,18.68 14.87,18.93L14.5,21.58C14.46,21.82 14.25,22 14,22H10M11.25,4L10.88,6.61C9.68,6.86 8.62,7.5 7.85,8.39L5.44,7.35L4.69,8.65L6.8,10.2C6.4,11.37 6.4,12.64 6.8,13.8L4.68,15.36L5.43,16.66L7.86,15.62C8.63,16.5 9.68,17.14 10.87,17.38L11.24,20H12.76L13.13,17.39C14.32,17.14 15.37,16.5 16.14,15.62L18.57,16.66L19.32,15.36L17.2,13.81C17.6,12.64 17.6,11.37 17.2,10.2L19.31,8.65L18.56,7.35L16.15,8.39C15.38,7.5 14.32,6.86 13.12,6.62L12.75,4H11.25Z" />
@@ -49,47 +90,72 @@ async function greet() {
         </button>
       </div>
     </div>
-    <div class="w-full flex-1 content-bg-color  overflow-y-scroll">
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
-      <div>aaa</div>
+    <div class="bg-base-200 w-full flex-1 overflow-y-auto p-4">
+      <div class="flex flex-col gap-4">
+        <div v-for="item in items" :key="item.id" class="collapse collapse-arrow bg-base-100 rounded-md border"
+          :class="expandedId === item.id ? 'border-2 border-primary collapse-open' : 'border-base-300'"
+          @click="toggleExpand(item.id)">
+          <input type="checkbox" class="hidden" :checked="expandedId === item.id" />
+          <div class="collapse-title flex items-center gap-2 p-4 min-h-0">
+            <div class="flex flex-col flex-1">
+              <div class="flex flex-row gap-2 items-center mb-1">
+                <p class="font-semibold text-base-content">{{ item.title }}</p>
+                <div class="flex gap-1">
+                  <span v-for="tag in item.tags" :key="tag" class="badge badge-sm badge-outline">
+                    {{ tag }}
+                  </span>
+                </div>
+              </div>
+              <p class="text-sm text-base-content/70">{{ item.preview }}</p>
+            </div>
+            <div class="ml-auto flex gap-2" @click.stop>
+            </div>
+          </div>
+          <div class="collapse-content border-t border-base-300 bg-base-100/50" @click.stop>
+            <div class="p-4">
+              <div class="prose prose-sm max-w-none">
+                <p class="text-base-content">{{ item.content }}</p>
+              </div>
+              <div class="mt-4 flex gap-2 justify-end">
+                <button class="btn btn-sm btn-outline">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+                    <path
+                      d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" />
+                  </svg>
+                  编辑
+                </button>
+                <button
+                  class="btn btn-sm"
+                  :class="copiedId === item.id ? 'btn-success' : 'btn-primary'"
+                  @click="handleCopy(item.id, item.content)"
+                  @click.stop
+                >
+                  <svg
+                    v-if="copiedId !== item.id"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    class="w-4 h-4"
+                  >
+                    <path
+                      d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" />
+                  </svg>
+                  <svg
+                    v-else
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    class="w-4 h-4"
+                  >
+                    <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                  </svg>
+                  {{ copiedId === item.id ? '已复制' : '复制' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 </template>
