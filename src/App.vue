@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed, nextTick } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { Prompt } from "@/types";
 
@@ -16,14 +16,14 @@ const items = ref<Prompt[]>([
   {
     id: "1",
     title: "标题",
-    preview: "",
+    tip: "",
     content: "aaaabbb",
     tags: []
   },
   {
     id: "2",
     title: "标题",
-    preview: "小字",
+    tip: "小字",
     content: "aaaa",
     tags: ["tag1", "tag2"]
   },
@@ -31,17 +31,6 @@ const items = ref<Prompt[]>([
 
 const toggleExpand = (id: string) => {
   expandedId.value = expandedId.value === id ? null : id;
-};
-
-const handleAdd = (id: string) => {
-  // 到时候往后端写，前端所有操作都只能是请求
-  items.value.push({
-    id: id,
-    title: "标题",
-    preview: "小字",
-    content: "aaaa",
-    tags: ["tag1", "tag2"]
-  });
 };
 
 const handleCopy = async (id: string, content: string) => {
@@ -62,9 +51,87 @@ const handleCopy = async (id: string, content: string) => {
     // 吞掉
   }
 };
+
 async function greet() {
   greetMsg.value = await invoke("greet", { name: name.value });
 }
+
+const tagInput = ref<string>("");
+
+const editingPrompt = ref<Prompt | null>(null);
+
+const selectedTags = computed(() => editingPrompt.value?.tags ?? []);
+
+const isEmptyTag = computed(() => {
+  const value = tagInput.value;
+  return value.length > 0 && selectedTags.value.includes(value);
+});
+
+const canAddTag = computed(() => {
+  const value = tagInput.value;
+  return value.length > 0 && !isEmptyTag.value;
+});
+
+const handleAddTag = () => {
+  if (!editingPrompt.value) return;
+  editingPrompt.value.tags.push(tagInput.value);
+  tagInput.value = "";
+}
+
+const handleRemoveTag = (tag: string) => {
+  if (!editingPrompt.value) return;
+  editingPrompt.value.tags = editingPrompt.value.tags.filter(t => t !== tag)
+}
+
+const openEditor = async (item: Prompt) => {
+  editingPrompt.value = {
+    ...item
+  };
+  tagInput.value = "";
+
+  // 模板里写的是 v-if="editedPrompt"，不先等创建完对象再来，会让第一次点击编辑按钮无响应
+  await nextTick();
+
+  editorRef.value?.showModal();
+};
+
+const resetEditor = () => {
+  tagInput.value = "";
+  editingPrompt.value = null;
+};
+
+const canSave = computed<boolean>(() => !isEmptyContent.value && !isEmptyTitle.value);
+
+const handleSave = () => {
+  if (!editingPrompt.value) return;
+  const index = items.value.findIndex(item => item.id === editingPrompt.value?.id);
+  if (index !== -1) {
+    items.value[index] = {
+      ...items.value[index],
+      ...editingPrompt.value
+    };
+  }
+  editorRef.value?.close();
+}
+
+const editorContextInputRef = ref<HTMLInputElement | null>(null);
+const editAreaRef = ref<HTMLElement | null>(null);
+
+
+const handleInputExpanded = () => {
+  if (!editorContextInputRef.value || !editAreaRef.value) return;
+
+  // 不保存状态会在编辑的时候强制滚动当编辑位置
+  const parentScroll = editAreaRef.value.scrollTop;
+
+  editorContextInputRef.value.style.height = "auto";
+  editorContextInputRef.value.style.height = `${editorContextInputRef.value.scrollHeight}px`;
+
+  editAreaRef.value.scrollTop = parentScroll;
+}
+
+const isEmptyTitle = computed<boolean>(() => editingPrompt.value?.title.length === 0);
+const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.length === 0);
 
 </script>
 
@@ -72,7 +139,7 @@ async function greet() {
   <main class="h-screen w-screen flex flex-col items-center justify-center">
     <div class="w-full h-20 bg-base-100 border-base-300 border-b">
       <div class="h-full flex flex-row items-center p-4 gap-2 flex-nowrap">
-        <a href="https://github.com/your-username/llm-prompt-manager" target="_blank" rel="noopener noreferrer"
+        <a href="https://github.com/S1lverAkatsuki/llm-prompt-manager" target="_blank" rel="noopener noreferrer"
           class="text-primary font-bold text-xl shrink-0 hover:brightness-80 cursor-pointer" title="前往Github查看">
           LLM-Prompt-Manager
         </a>
@@ -121,7 +188,7 @@ async function greet() {
                   </span>
                 </div>
               </div>
-              <p class="text-sm text-base-content/70">{{ item.preview }}</p>
+              <p class="text-sm text-base-content/70">{{ item.tip }}</p>
             </div>
             <div class="ml-auto flex gap-2" @click.stop>
             </div>
@@ -132,7 +199,7 @@ async function greet() {
                 <p class="text-base-content">{{ item.content }}</p>
               </div>
               <div class="mt-4 flex gap-2 justify-end">
-                <button class="btn btn-sm btn-outline" @click.stop="editorRef?.showModal()">
+                <button class="btn btn-sm btn-outline" @click.stop="openEditor(item)">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
                     <path
                       d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" />
@@ -159,7 +226,7 @@ async function greet() {
       </div>
     </div>
 
-    <dialog ref="editorRef" id="editor" class="modal">
+    <dialog v-if="editingPrompt" ref="editorRef" id="editor" class="modal" @close="resetEditor">
       <div class="modal-box w-[80vw] max-w-3xl h-[90vh] p-0 flex flex-col">
         <div class="flex items-start justify-between border-b border-base-300 px-6 py-4">
           <div>
@@ -175,29 +242,60 @@ async function greet() {
             </button>
           </form>
         </div>
-        <div class="flex-1 overflow-y-auto p-5 space-y-6 [scrollbar-gutter:stable_both-edges]">
+        <div ref="editAreaRef" class="flex-1 overflow-y-auto p-5 space-y-6 [scrollbar-gutter:stable_both-edges]">
           <div>
             <p class="text-sm font-medium">标题 *</p>
-            <input type="text" class="input input-sm w-full mt-2" />
+            <input class="input input-sm w-full mt-2" type="text" v-model.trim="editingPrompt.title"
+              placeholder="Prompt 项的标题" required :class="{ 'input-error': isEmptyTitle }" />
+            <p v-show="isEmptyTitle" class="text-xs text-error mt-1">
+              请输入一个标题
+            </p>
           </div>
           <div>
             <p class="text-sm font-medium">简述</p>
-            <input type="text" class="input input-sm w-full mt-2" />
+            <input type="text" class="input input-sm w-full mt-2" v-model.trim="editingPrompt.tip"
+              placeholder="简短描述一下 Prompt 的用途" />
           </div>
           <div>
             <p class="text-sm font-medium">标签</p>
-            <input type="text" class="input input-sm w-full mt-2" />
+            <div class="flex flex-col gap-2">
+              <div class="flex flex-wrap gap-2 mt-2">
+                <p v-if="selectedTags.length === 0" class="textarea-sm text-base-content/50">当前无标签</p>
+                <span v-else v-for="tag in selectedTags" :key="tag" class="badge badge-outline pr-1">
+                  {{ tag }}
+                  <button class="btn btn-ghost btn-xs btn-circle h-5 w-5 p-0" @click="handleRemoveTag(tag)">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-3 h-3" fill="currentColor">
+                      <path
+                        d="M19,6.41,17.59,5,12,10.59,6.41,5,5,6.41,10.59,12,5,17.59,6.41,19,12,13.41,17.59,19,19,17.59,13.41,12Z" />
+                    </svg>
+                  </button>
+                </span>
+              </div>
+              <div class="join w-full">
+                <input class="input input-sm join-item flex-1" v-model.trim="tagInput" @keyup.enter="handleAddTag()"
+                  placeholder="输入要添加的标签项" :class="{ 'input-error': isEmptyTag }" />
+                <button class="btn btn-sm join-item" @click="handleAddTag()" :disabled="!canAddTag">添加</button>
+              </div>
+              <p v-if="isEmptyTag" class="text-xs text-error mt-1">
+                重复的标签无法输入
+              </p>
+            </div>
           </div>
           <div>
             <p class="text-sm font-medium">内容 *</p>
-            <div contenteditable="true" class="textarea w-full mt-2 resize-none overflow-hidden" rows="3" />
+            <p v-show="isEmptyContent" class="text-xs text-error mt-1">
+              请输入 Prompt 内容
+            </p>
+            <textarea ref="editorContextInputRef" class="textarea w-full mt-2 resize-none overflow-hidden" rows="3"
+              v-model="editingPrompt.content" @input="handleInputExpanded" placeholder="Prompt 的内容" required
+              :class="{ 'input-error': isEmptyContent }" />
           </div>
         </div>
         <div class="bg-base-200/50 border-t border-base-300 p-6 flex justify-end gap-2">
           <form method="dialog">
             <button class="btn btn-ghost text-base-content/50">取消</button>
           </form>
-          <button class="btn btn-primary">
+          <button class="btn btn-primary" @click="handleSave" :disabled="!canSave">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor">
               <path
                 d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" />

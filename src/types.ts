@@ -1,7 +1,7 @@
 export interface Prompt {
   id: string;
   title: string;
-  preview: string;
+  tip: string;
   content: string;
   tags: string[];
 }
