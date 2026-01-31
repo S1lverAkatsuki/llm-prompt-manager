@@ -1,8 +1,8 @@
 [package]
 name = "llm-prompt-manager"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "A Tauri application for managing LLM prompts"
+authors = ["SilverAkatsuki"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -22,4 +22,6 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
+tauri-plugin-clipboard-manager = "2"
+short-uuid = "0.1.2"
+dirs-next = "2.0.0"

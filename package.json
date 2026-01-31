@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-clipboard-manager": "~2.3.2",
     "@tauri-apps/plugin-opener": "^2",
     "tailwindcss": "^4.1.18",
     "vue": "^3.5.13"

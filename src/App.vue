@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, nextTick } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { ref, computed, nextTick, onBeforeUnmount } from "vue";
 import { Prompt } from "@/types";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
-const greetMsg = ref("");
-const name = ref("");
 const copiedId = ref<string | null>(null);
 const copyTimeout = ref<NodeJS.Timeout | null>(null);
 
+const deletedTimeout = ref<NodeJS.Timeout | null>(null);
+
 const editorRef = ref<HTMLDialogElement | null>(null);
+
 const expandedId = ref<string | null>(null);
 
 // 示例数据
@@ -35,7 +36,7 @@ const toggleExpand = (id: string) => {
 
 const handleCopy = async (id: string, content: string) => {
   try {
-    await navigator.clipboard.writeText(content);
+    await writeText(content);
     copiedId.value = id;
 
     // 小心连点多个按钮
@@ -52,9 +53,37 @@ const handleCopy = async (id: string, content: string) => {
   }
 };
 
-async function greet() {
-  greetMsg.value = await invoke("greet", { name: name.value });
-}
+const handleDelete = async () => {
+  if (!editingPrompt.value) return;
+
+
+  // 有计时器的时候肯定进确认阶段了
+  if (deletedTimeout.value) {
+    items.value = items.value.filter(item => item.id !== editingPrompt.value?.id);
+
+    clearTimeout(deletedTimeout.value);
+    deletedTimeout.value = null;
+
+    editorRef.value?.close();
+    resetEditor();
+    return;
+  }
+
+  const RESET_MILLISECOND = 2000;
+  deletedTimeout.value = setTimeout(() => {
+    deletedTimeout.value = null;
+  }, RESET_MILLISECOND);
+
+};
+
+onBeforeUnmount(() => {
+  if (copyTimeout.value) {
+    clearTimeout(copyTimeout.value);
+  }
+  if (deletedTimeout.value) {
+    clearTimeout(deletedTimeout.value);
+  }
+})
 
 const tagInput = ref<string>("");
 
@@ -98,6 +127,7 @@ const openEditor = async (item: Prompt) => {
 const resetEditor = () => {
   tagInput.value = "";
   editingPrompt.value = null;
+  deletedTimeout.value = null;
 };
 
 const canSave = computed<boolean>(() => !isEmptyContent.value && !isEmptyTitle.value);
@@ -292,6 +322,13 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
           </div>
         </div>
         <div class="bg-base-200/50 border-t border-base-300 p-6 flex justify-end gap-2">
+          <button class="btn btn-outline btn-error mr-auto" @click="handleDelete">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor">
+              <path
+                d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z" />
+            </svg>
+            {{ deletedTimeout ? "确认删除？" : "删除" }}
+          </button>
           <form method="dialog">
             <button class="btn btn-ghost text-base-content/50">取消</button>
           </form>
