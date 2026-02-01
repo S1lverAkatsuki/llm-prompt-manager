@@ -3,6 +3,7 @@ import { ref, computed, nextTick, onBeforeUnmount, onMounted } from "vue";
 import { Prompt } from "@/types";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { invoke } from "@tauri-apps/api/core";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 
 const copiedId = ref<string | null>(null);
 const copyTimeout = ref<NodeJS.Timeout | null>(null);
@@ -10,6 +11,10 @@ const copyTimeout = ref<NodeJS.Timeout | null>(null);
 const deletedTimeout = ref<NodeJS.Timeout | null>(null);
 
 const editorRef = ref<HTMLDialogElement | null>(null);
+const settingRef = ref<HTMLDialogElement | null>(null);
+
+const data_path = ref<string>("");
+const version = ref<string>("");
 
 const expandedId = ref<string | null>(null);
 
@@ -17,13 +22,17 @@ const items = ref<Prompt[] | null>(null);
 
 onMounted(() => {
   invoke<Prompt[]>("read")
-    .then(data => {
-      items.value = data;
-    })
-    .catch(() => {
+    .then(data => items.value = data)
+    .catch(e => {
       items.value = [];
-      // 吞掉
+      console.error(e);
     });
+  invoke<string>("get_data_path")
+    .then(path => data_path.value = path)
+    .catch(e => console.error(e));
+  invoke<string>("get_version")
+    .then(x => version.value = x)
+    .catch(e => console.error(e));
 });
 
 const toggleExpand = (id: string) => {
@@ -104,7 +113,7 @@ const canAddTag = computed(() => {
 });
 
 const handleAddTag = () => {
-  if (!editingPrompt.value) return;
+  if (!editingPrompt.value || !canAddTag.value) return;
   editingPrompt.value.tags.push(tagInput.value);
   tagInput.value = "";
 }
@@ -112,6 +121,10 @@ const handleAddTag = () => {
 const handleRemoveTag = (tag: string) => {
   if (!editingPrompt.value) return;
   editingPrompt.value.tags = editingPrompt.value.tags.filter(t => t !== tag)
+}
+
+const openSetting = () => {
+  settingRef.value?.showModal();
 }
 
 const openEditor = async (item: Prompt) => {
@@ -214,7 +227,7 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
               d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
           </svg>
         </label>
-        <button class="btn btn-circle btn-ghost btn-sm text-base-content hover:bg-base-300">
+        <button class="btn btn-circle btn-ghost btn-sm text-base-content hover:bg-base-300" @click="openSetting">
           <svg class="fill-current w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path
               d="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10M10,22C9.75,22 9.54,21.82 9.5,21.58L9.13,18.93C8.5,18.68 7.96,18.34 7.44,17.94L4.95,18.95C4.73,19.03 4.46,18.95 4.34,18.73L2.34,15.27C2.21,15.05 2.27,14.78 2.46,14.63L4.57,12.97L4.5,12L4.57,11L2.46,9.37C2.27,9.22 2.21,8.95 2.34,8.73L4.34,5.27C4.46,5.05 4.73,4.96 4.95,5.05L7.44,6.05C7.96,5.66 8.5,5.32 9.13,5.07L9.5,2.42C9.54,2.18 9.75,2 10,2H14C14.25,2 14.46,2.18 14.5,2.42L14.87,5.07C15.5,5.32 16.04,5.66 16.56,6.05L19.05,5.05C19.27,4.96 19.54,5.05 19.66,5.27L21.66,8.73C21.79,8.95 21.73,9.22 21.54,9.37L19.43,11L19.5,12L19.43,13L21.54,14.63C21.73,14.78 21.79,15.05 21.66,15.27L19.66,18.73C19.54,18.95 19.27,19.04 19.05,18.95L16.56,17.95C16.04,18.34 15.5,18.68 14.87,18.93L14.5,21.58C14.46,21.82 14.25,22 14,22H10M11.25,4L10.88,6.61C9.68,6.86 8.62,7.5 7.85,8.39L5.44,7.35L4.69,8.65L6.8,10.2C6.4,11.37 6.4,12.64 6.8,13.8L4.68,15.36L5.43,16.66L7.86,15.62C8.63,16.5 9.68,17.14 10.87,17.38L11.24,20H12.76L13.13,17.39C14.32,17.14 15.37,16.5 16.14,15.62L18.57,16.66L19.32,15.36L17.2,13.81C17.6,12.64 17.6,11.37 17.2,10.2L19.31,8.65L18.56,7.35L16.15,8.39C15.38,7.5 14.32,6.86 13.12,6.62L12.75,4H11.25Z" />
@@ -229,7 +242,7 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
         </button>
       </div>
     </div>
-    <div class="bg-base-200 w-full flex-1 overflow-y-auto p-4">
+    <div class="bg-base-200 w-full flex-1 overflow-y-auto p-5 [scrollbar-gutter:stable_both-edges]">
       <div v-if="items == null" class="h-full flex items-center justify-center text-base-content/70">
         正在加载
       </div>
@@ -237,22 +250,25 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
         当前没有存储 Prompt
       </div>
       <div v-else class="flex flex-col gap-4">
-        <div v-for="item in items" :key="item.id" class="collapse collapse-arrow bg-base-100 rounded-md border"
+        <div v-for="item in items" :key="item.id" class="collapse collapse-arrow bg-base-100 rounded-md border w-full"
           :class="expandedId === item.id ? 'border-primary collapse-open' : 'border-base-300'">
           <input type="checkbox" :checked="expandedId === item.id" @change="toggleExpand(item.id)" />
-          <div class="collapse-title flex items-center gap-2 p-4 min-h-0">
-            <div class="flex flex-col flex-1">
+          <div class="collapse-title flex items-center gap-2 p-4 min-h-0 pr-12">
+            <div class="flex flex-col flex-1 min-w-0">
               <div class="flex flex-row gap-2 items-center mb-1">
-                <p class="font-semibold text-base-content">{{ item.title }}</p>
+                <p class="font-semibold text-base-content"
+                  :class="expandedId !== item.id ? 'truncate' : 'whitespace-normal break-all'">{{ item.title }}
+                </p>
                 <div class="flex gap-1">
                   <span v-for="tag in item.tags" :key="tag" class="badge badge-sm badge-outline">
                     {{ tag }}
                   </span>
                 </div>
               </div>
-              <p class="text-sm text-base-content/70">{{ item.tip }}</p>
-            </div>
-            <div class="ml-auto flex gap-2" @click.stop>
+              <p class="text-sm text-base-content/70" :title="item.tip"
+                :class="expandedId !== item.id ? 'truncate' : 'whitespace-normal break-all'">
+                {{ item.tip }}
+              </p>
             </div>
           </div>
           <div class="collapse-content border-t border-base-300 bg-base-100/50" @click.stop>
@@ -290,13 +306,13 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
 
     <dialog v-if="editingPrompt" ref="editorRef" id="editor" class="modal" @close="resetEditor">
       <div class="modal-box w-[80vw] max-w-3xl h-[90vh] p-0 flex flex-col">
-        <div class="flex items-start justify-between border-b border-base-300 px-6 py-4">
+        <div class="flex items-center justify-between border-b border-base-300 px-6 py-4">
           <div>
             <h3 class="text-lg font-semibold text-base-content">编辑 Prompt</h3>
             <p class="text-sm text-base-content/70 mt-1">在此修改当前 Prompt 信息</p>
           </div>
           <form method="dialog">
-            <button class="btn btn-sm btn-circle btn-ghost" aria-label="关闭">
+            <button class="btn btn-sm btn-circle btn-ghost">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor">
                 <path
                   d="M19,6.41,17.59,5,12,10.59,6.41,5,5,6.41,10.59,12,5,17.59,6.41,19,12,13.41,17.59,19,19,17.59,13.41,12Z" />
@@ -334,9 +350,9 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
                 </span>
               </div>
               <div class="join w-full">
-                <input class="input input-sm join-item flex-1" v-model.trim="tagInput" @keyup.enter="handleAddTag()"
+                <input class="input input-sm join-item flex-1" v-model.trim="tagInput" @keyup.enter="handleAddTag"
                   placeholder="输入要添加的标签项" :class="{ 'input-error': isEmptyTag }" />
-                <button class="btn btn-sm join-item" @click="handleAddTag()" :disabled="!canAddTag">添加</button>
+                <button class="btn btn-sm join-item" @click="handleAddTag" :disabled="!canAddTag">添加</button>
               </div>
               <p v-if="isEmptyTag" class="text-xs text-error mt-1">
                 重复的标签无法输入
@@ -371,6 +387,42 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
             </svg>
             保存
           </button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog ref="settingRef" id="setting" class="modal transition-none!">
+      <div class="modal-box w-[50vw] max-w-3xl h-[90vh] p-0 flex flex-col">
+        <div class="flex items-center justify-between border-b border-base-300 px-6 py-4">
+          <h3 class="text-lg font-semibold text-base-content">设置</h3>
+          <form method="dialog">
+            <button class="btn btn-sm btn-circle btn-ghost">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor">
+                <path
+                  d="M19,6.41,17.59,5,12,10.59,6.41,5,5,6.41,10.59,12,5,17.59,6.41,19,12,13.41,17.59,19,19,17.59,13.41,12Z" />
+              </svg>
+            </button>
+          </form>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6 py-4 space-y-6">
+          <div>
+            <p class="text-sm font-medium">配置文件位置</p>
+            <p class="text-sm text-base-content/50 mt-2 mb-2">跟随 Tauri 默认应用配置，很显然没有改的必要</p>
+            <a class="link link-info w-full whitespace-normal break-all" title="用资源管理器打开"
+              @click="revealItemInDir(data_path!)">{{ data_path }}</a>
+          </div>
+          <div>
+            <p class="text-sm font-medium">关于</p>
+            <div class="card w-full bg-base-200/50 card-sm shadow mt-2">
+              <div class="card-body">
+                <div class="flex flex-row gap-2 items-center">
+                  <h2 class="card-title">LLM-Prompt-Manager</h2>
+                  <span class="inline ml-auto text-sm text-base-content">{{ version }}</span>
+                </div>
+                <p class="text-sm text-base-content/50">aaa</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </dialog>
