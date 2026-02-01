@@ -1,10 +1,31 @@
 mod prompt_manager;
-use prompt_manager::PromptManager;
-use tauri::Manager;
+use std::sync::{Arc, Mutex};
+
+use prompt_manager::{Prompt, PromptManager};
+use tauri::{Manager, State};
 
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+fn create(state: State<'_, Arc<Mutex<PromptManager>>>) -> Result<Vec<Prompt>, String> {
+    let mut manager = state.lock().map_err(|e| e.to_string())?;
+    manager.create_prompt()
+}
+
+#[tauri::command]
+fn read(state: tauri::State<'_, Arc<Mutex<PromptManager>>>) -> Result<Vec<Prompt>, String> {
+    let mut manager = state.lock().map_err(|e| e.to_string())?;
+    manager.read_prompts()
+}
+
+#[tauri::command]
+fn update(state: State<'_, Arc<Mutex<PromptManager>>>, new_prompt: Prompt) -> Result<(), String> {
+    let mut manager = state.lock().map_err(|e| e.to_string())?;
+    manager.update_prompt(new_prompt)
+}
+
+#[tauri::command]
+fn delete(state: State<'_, Arc<Mutex<PromptManager>>>, deleted_id: String) -> Result<(), String> {
+    let mut manager = state.lock().map_err(|e| e.to_string())?;
+    manager.delete_prompt(deleted_id)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -14,15 +35,22 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             //  from_app 接收 &AppHandle，所以这里调用 app.handle()
-            // 原来还可以用这个
-            let manager = PromptManager::from_app(app.handle());
+            let manager = PromptManager::empty(app.handle());
+
+            let shared = Arc::new(Mutex::new(manager));
 
             // 注册到 Tauri 维护的状态机内，Manager 就会在整个应用的生命周期内单例运行
-            app.manage(manager);
+            app.manage(shared.clone());
+
+            std::thread::spawn(move || {
+                if let Ok(mut mtxgd) = shared.lock() {
+                    let _ = mtxgd.loaded_prompt();
+                }
+            });
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![create, read, update, delete])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
