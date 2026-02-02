@@ -15,6 +15,14 @@ pub struct Prompt {
     pub tags: Vec<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PromptData {
+    pub title: String,
+    pub tip: String,
+    pub content: String,
+    pub tags: Vec<String>,
+}
+
 impl Default for Prompt {
     fn default() -> Self {
         Self {
@@ -28,29 +36,40 @@ impl Default for Prompt {
 }
 
 impl Prompt {
-    fn with_init(init_prompt: Prompt) -> Self {
+    fn from_data(data: PromptData) -> Self {
         Self {
             id: ShortUuid::generate().to_string(),
-            title: init_prompt.title,
-            tip: init_prompt.tip,
-            content: init_prompt.content,
-            tags: init_prompt.tags,
+            title: data.title,
+            tip: data.tip,
+            content: data.content,
+            tags: data.tags,
         }
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct PromptManager {
-    loaded: bool,
-    pub data_file_path: PathBuf,
+    is_in_dark_mode: bool,
+    #[serde(skip)]
+    // 能在序列化和反序列化时跳过下面这条
+    data_file_path: PathBuf,
     pub prompts: Vec<Prompt>,
 }
 
-const DATA_FILE: &str = "prompts.json";
+impl Default for PromptManager {
+    fn default() -> Self {
+        Self {
+            is_in_dark_mode: false,
+            data_file_path: PathBuf::new(),
+            prompts: Vec::new(),
+        }
+    }
+}
 
-#[allow(unused)]
+const DATA_FILE: &str = "config.json";
+
 impl PromptManager {
-    pub fn empty(app: &tauri::AppHandle) -> Self {
+    pub fn from_app_handle(app: &tauri::AppHandle) -> Self {
         use tauri::Manager;
 
         let data_file_path = app
@@ -58,38 +77,43 @@ impl PromptManager {
             .resolve(DATA_FILE, BaseDirectory::AppLocalData)
             .expect("路径解析失败");
 
+        if let Some(parent) = data_file_path.parent() {
+            if !parent.exists() {
+                create_dir_all(parent).expect("目录创建失败");
+            }
+        }
+
+        let config = if data_file_path.exists() {
+            let content = read_to_string(&data_file_path).unwrap_or_default();
+
+            if content.trim().is_empty() {
+                PromptManager::default()
+            } else {
+                serde_json::from_str::<PromptManager>(&content).unwrap_or_default()
+            }
+        } else {
+            PromptManager::default()
+        };
+
         Self {
-            loaded: false,
             data_file_path,
-            prompts: Vec::new(),
+            ..config
         }
     }
 
-    pub fn create_prompt(&mut self, init_prompt: Prompt) -> Result<Vec<Prompt>, String> {
-        if !self.loaded {
-            self.loaded_prompt();
-        }
-
-        let new_prompt = Prompt::with_init(init_prompt);
-        self.prompts.push(new_prompt);
+    pub fn create_prompt(&mut self, data: PromptData) -> Result<Prompt, String> {
+        let new_prompt = Prompt::from_data(data);
+        self.prompts.push(new_prompt.clone());
 
         self.save()?;
-        Ok(self.prompts.clone())
+        Ok(new_prompt)
     }
 
     pub fn read_prompts(&mut self) -> Result<Vec<Prompt>, String> {
-        if !self.loaded {
-            self.loaded_prompt();
-        }
-
         Ok(self.prompts.clone())
     }
 
     pub fn update_prompt(&mut self, new_prompt: Prompt) -> Result<(), String> {
-        if !self.loaded {
-            self.loaded_prompt();
-        }
-
         if let Some(index) = self.prompts.iter().position(|p| p.id == new_prompt.id) {
             self.prompts[index] = new_prompt;
             self.save()?;
@@ -100,10 +124,6 @@ impl PromptManager {
     }
 
     pub fn delete_prompt(&mut self, deleted_id: String) -> Result<(), String> {
-        if !self.loaded {
-            self.loaded_prompt();
-        }
-
         let initial_len = self.prompts.len();
         // 必须要记录长度，没删掉也不会有任何错误提示
         self.prompts.retain(|p| p.id != deleted_id);
@@ -117,27 +137,24 @@ impl PromptManager {
         }
     }
 
+    pub fn set_dark_mode(&mut self, new_mode: bool) -> Result<(), String> {
+        self.is_in_dark_mode = new_mode;
+        self.save()
+    }
+
+    pub fn get_dark_mode(&self) -> bool {
+        self.is_in_dark_mode
+    }
+
+    pub fn get_data_file_path(&self) -> &PathBuf {
+        &self.data_file_path
+    }
+
     fn save(&self) -> Result<(), String> {
-        let json = serde_json::to_string(&self.prompts).map_err(|e| e.to_string())?;
+        let json = serde_json::to_string_pretty(&self).map_err(|e| e.to_string())?;
 
         write(&self.data_file_path, json).map_err(|e| e.to_string())?;
 
         Ok(())
-    }
-
-    pub fn loaded_prompt(&mut self) {
-        if let Some(parent) = self.data_file_path.parent() {
-            if !parent.exists() {
-                create_dir_all(parent).expect("目录创建失败");
-            }
-        }
-
-        self.prompts = if self.data_file_path.exists() {
-            let content = read_to_string(&self.data_file_path).unwrap_or_default();
-            serde_json::from_str(&content).unwrap_or_else(|_| Vec::new())
-        } else {
-            Vec::new()
-        };
-        self.loaded = true;
     }
 }

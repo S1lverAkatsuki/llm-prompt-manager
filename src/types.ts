@@ -5,3 +5,5 @@ export interface Prompt {
   content: string;
   tags: string[];
 }
+
+export type PromptData = Omit<Prompt, "id">;

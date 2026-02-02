@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onBeforeUnmount, onMounted } from "vue";
-import { Prompt } from "@/types";
+import { ref, computed, nextTick, onBeforeUnmount, onMounted, watch } from "vue";
+import { Prompt, PromptData } from "@/types";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { invoke } from "@tauri-apps/api/core";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
@@ -20,6 +20,8 @@ const expandedId = ref<string | null>(null);
 
 const items = ref<Prompt[] | null>(null);
 
+const isInDarkMode = ref<boolean | null>(null);
+
 onMounted(() => {
   invoke<Prompt[]>("read")
     .then(data => items.value = data)
@@ -32,6 +34,24 @@ onMounted(() => {
     .catch(e => console.error(e));
   invoke<string>("get_version")
     .then(x => version.value = x)
+    .catch(e => console.error(e));
+  invoke<boolean>("get_dark_mode")
+    .then(x => isInDarkMode.value = x)
+    .catch(e => console.error(e));
+
+});
+
+watch(isInDarkMode, (value, oldValue) => {
+  if (value === null) return;
+
+  const theme = value ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", theme);
+
+  // 初始化完了设置主题就不必再写回一遍了
+  if (oldValue === null) return;
+
+  // 往后 isInDarkMode 的改变，就都要持久化存储
+  invoke("set_dark_mode", { newMode: value })
     .catch(e => console.error(e));
 });
 
@@ -59,18 +79,18 @@ const handleCopy = async (id: string, content: string) => {
 };
 
 const handleDelete = async () => {
-  if (!editingPrompt.value || !items.value) return;
+  if (!editingPrompt.value || !items.value || !editingId.value) return;
 
 
   // 有计时器的时候肯定进确认阶段了
   if (deletedTimeout.value) {
     try {
-      await invoke("delete", { deletedId: editingPrompt.value?.id });
+      await invoke("delete", { deletedId: editingId.value });
     } catch (e) {
       console.error(e);
     }
 
-    items.value = items.value.filter(item => item.id !== editingPrompt.value?.id);
+    items.value = items.value.filter(item => item.id !== editingId.value);
 
     clearTimeout(deletedTimeout.value);
     deletedTimeout.value = null;
@@ -98,8 +118,9 @@ onBeforeUnmount(() => {
 
 const tagInput = ref<string>("");
 
-const editingPrompt = ref<Prompt | null>(null);
-const isEditorInCreateMode = ref<boolean>(false);
+const editingPrompt = ref<PromptData | null>(null);
+const editingId = ref<string | null>(null);
+const isEditorInCreateMode = computed(() => editingId.value === null);
 
 const selectedTags = computed(() => editingPrompt.value?.tags ?? []);
 
@@ -128,13 +149,22 @@ const openSetting = () => {
   settingRef.value?.showModal();
 }
 
-const openEditor = async (item: Prompt) => {
-  // tags 是引用，必须复制才能和原来的脱钩
-  editingPrompt.value = {
-    ...item,
-    tags: [...item.tags]
-  };
+const openEditor = async (item?: Prompt) => {
+  if (item) {
+    // tags 是引用，必须复制才能和原来的脱钩
+    editingPrompt.value = {
+      title: item.title,
+      tip: item.tip,
+      content: item.content,
+      tags: [...item.tags]
+    };
+    editingId.value = item.id;
+  } else {
+    editingPrompt.value = { title: "", tip: "", content: "", tags: [] };
+    editingId.value = null;
+  }
   tagInput.value = "";
+  deletedTimeout.value = null;
 
   // 模板里写的是 v-if="editedPrompt"，不先等创建完对象再来，会让第一次点击编辑按钮无响应
   await nextTick();
@@ -145,54 +175,55 @@ const openEditor = async (item: Prompt) => {
 const resetEditor = () => {
   tagInput.value = "";
   editingPrompt.value = null;
+  editingId.value = null;
   deletedTimeout.value = null;
 };
 
 const canSave = computed<boolean>(() => !isEmptyContent.value && !isEmptyTitle.value);
 
 const handleCreate = async () => {
-  isEditorInCreateMode.value = true;
-
-  editingPrompt.value = { id: "", title: "", tip: "", content: "", tags: [] };
-
-  openEditor(editingPrompt.value);
+  await openEditor();
 }
 
 const handleSave = async () => {
-  if (!editingPrompt.value) return;
+  const data = editingPrompt.value;
+  if (!data) return;
 
-  if (editingPrompt.value.id.length === 0) {
+  if (isEditorInCreateMode.value) {
     try {
-      items.value = await invoke("create", { initPrompt: editingPrompt.value });
+      const createdPrompt = await invoke<Prompt>("create", { draft: data });
+      if (!items.value) {
+        items.value = [createdPrompt];
+      } else {
+        items.value.push(createdPrompt);
+      }
     } catch (e) {
       console.error(e);
     }
     editorRef.value?.close();
-    isEditorInCreateMode.value = false;
     resetEditor();
     return;
   }
 
-  if (!items.value) return;
+  if (!items.value || !editingId.value) return;
 
-  const index = items.value.findIndex(item => item.id === editingPrompt.value?.id);
+  const index = items.value.findIndex(item => item.id === editingId.value);
 
   if (index !== -1) {
+    const updatedPrompt: Prompt = {
+      ...items.value[index],
+      ...data,
+      id: editingId.value
+    };
     try {
       await invoke("update", {
-        newPrompt: {
-          ...items.value[index],
-          ...editingPrompt.value
-        }
+        newPrompt: updatedPrompt
       });
 
     } catch (e) {
       console.error(e);
     }
-    items.value[index] = {
-      ...items.value[index],
-      ...editingPrompt.value
-    };
+    items.value[index] = updatedPrompt;
   }
 
   editorRef.value?.close();
@@ -229,7 +260,8 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
           LLM-Prompt-Manager
         </a>
         <label class="swap swap-rotate btn btn-circle btn-ghost btn-sm text-base-content hover:bg-base-300">
-          <input type="checkbox" class="theme-controller" value="dark" />
+          <input type="checkbox" class="theme-controller" value="dark" v-model="isInDarkMode"
+            :disabled="isInDarkMode === null" />
 
           <!-- sun icon -->
           <svg class="swap-off w-5 h-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -293,7 +325,7 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
                 <p class="text-base-content">{{ item.content }}</p>
               </div>
               <div class="mt-4 flex gap-2 justify-end">
-                <button class="btn btn-sm btn-outline" @click.stop="isEditorInCreateMode = false; openEditor(item);">
+                <button class="btn btn-sm btn-outline" @click.stop="openEditor(item)">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
                     <path
                       d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" />
@@ -381,7 +413,7 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
             <p v-show="isEmptyContent" class="text-xs text-error mt-1">
               请输入 Prompt 内容
             </p>
-            <textarea ref="editorContextInputRef" class="textarea w-full mt-2 resize-none overflow-hidden" rows="3"
+            <textarea ref="editorContextInputRef" class="textarea box-border w-full mt-2 resize-none overflow-x-auto overflow-y-hidden whitespace-pre" rows="3"
               v-model="editingPrompt.content" @input="handleInputExpanded" placeholder="例如：你是一只猫娘..." required
               :class="{ 'input-error': isEmptyContent }" />
           </div>
@@ -436,7 +468,7 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
                   <h2 class="card-title">LLM-Prompt-Manager</h2>
                   <span class="inline ml-auto text-sm text-base-content">{{ version }}</span>
                 </div>
-                <p class="text-sm text-base-content/50">aaa</p>
+                <p class="text-sm text-base-content/50">银晓洗脑机器人用的邪恶工具 👎🤖</p>
               </div>
             </div>
           </div>
