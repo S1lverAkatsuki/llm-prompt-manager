@@ -99,6 +99,7 @@ onBeforeUnmount(() => {
 const tagInput = ref<string>("");
 
 const editingPrompt = ref<Prompt | null>(null);
+const isEditorInCreateMode = ref<boolean>(false);
 
 const selectedTags = computed(() => editingPrompt.value?.tags ?? []);
 
@@ -150,15 +151,29 @@ const resetEditor = () => {
 const canSave = computed<boolean>(() => !isEmptyContent.value && !isEmptyTitle.value);
 
 const handleCreate = async () => {
-  try {
-    items.value = await invoke("create");
-  } catch {
-    // 吞掉
-  }
+  isEditorInCreateMode.value = true;
+
+  editingPrompt.value = { id: "", title: "", tip: "", content: "", tags: [] };
+
+  openEditor(editingPrompt.value);
 }
 
 const handleSave = async () => {
-  if (!editingPrompt.value || !items.value) return;
+  if (!editingPrompt.value) return;
+
+  if (editingPrompt.value.id.length === 0) {
+    try {
+      items.value = await invoke("create", { initPrompt: editingPrompt.value });
+    } catch (e) {
+      console.error(e);
+    }
+    editorRef.value?.close();
+    isEditorInCreateMode.value = false;
+    resetEditor();
+    return;
+  }
+
+  if (!items.value) return;
 
   const index = items.value.findIndex(item => item.id === editingPrompt.value?.id);
 
@@ -171,8 +186,8 @@ const handleSave = async () => {
         }
       });
 
-    } catch {
-      // 吞掉
+    } catch (e) {
+      console.error(e);
     }
     items.value[index] = {
       ...items.value[index],
@@ -181,6 +196,7 @@ const handleSave = async () => {
   }
 
   editorRef.value?.close();
+  resetEditor();
 }
 
 const editorContextInputRef = ref<HTMLInputElement | null>(null);
@@ -277,7 +293,7 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
                 <p class="text-base-content">{{ item.content }}</p>
               </div>
               <div class="mt-4 flex gap-2 justify-end">
-                <button class="btn btn-sm btn-outline" @click.stop="openEditor(item)">
+                <button class="btn btn-sm btn-outline" @click.stop="isEditorInCreateMode = false; openEditor(item);">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
                     <path
                       d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" />
@@ -308,8 +324,9 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
       <div class="modal-box w-[80vw] max-w-3xl h-[90vh] p-0 flex flex-col">
         <div class="flex items-center justify-between border-b border-base-300 px-6 py-4">
           <div>
-            <h3 class="text-lg font-semibold text-base-content">编辑 Prompt</h3>
-            <p class="text-sm text-base-content/70 mt-1">在此修改当前 Prompt 信息</p>
+            <h3 class="text-lg font-semibold text-base-content">{{ isEditorInCreateMode ? "添加新的 Prompt" : "编辑 Prompt" }}
+            </h3>
+            <p v-show="!isEditorInCreateMode" class="text-sm text-base-content/70 mt-1">在此修改当前 Prompt 信息</p>
           </div>
           <form method="dialog">
             <button class="btn btn-sm btn-circle btn-ghost">
@@ -332,7 +349,7 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
           <div>
             <p class="text-sm font-medium">简述</p>
             <input type="text" class="input input-sm w-full mt-2" v-model.trim="editingPrompt.tip"
-              placeholder="简短描述一下 Prompt 的用途" />
+              placeholder="一句话概括 Prompt 的作用" />
           </div>
           <div>
             <p class="text-sm font-medium">标签</p>
@@ -365,12 +382,12 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
               请输入 Prompt 内容
             </p>
             <textarea ref="editorContextInputRef" class="textarea w-full mt-2 resize-none overflow-hidden" rows="3"
-              v-model="editingPrompt.content" @input="handleInputExpanded" placeholder="Prompt 的内容" required
+              v-model="editingPrompt.content" @input="handleInputExpanded" placeholder="例如：你是一只猫娘..." required
               :class="{ 'input-error': isEmptyContent }" />
           </div>
         </div>
         <div class="bg-base-200/50 border-t border-base-300 p-6 flex justify-end gap-2">
-          <button class="btn btn-outline btn-error mr-auto" @click="handleDelete">
+          <button v-show="!isEditorInCreateMode" class="btn btn-outline btn-error mr-auto" @click="handleDelete">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor">
               <path
                 d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z" />

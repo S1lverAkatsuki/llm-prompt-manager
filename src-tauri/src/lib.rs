@@ -10,9 +10,9 @@ fn get_version() -> String {
 }
 
 #[tauri::command]
-fn create(state: State<'_, Arc<Mutex<PromptManager>>>) -> Result<Vec<Prompt>, String> {
+fn create(state: State<'_, Arc<Mutex<PromptManager>>>, init_prompt: Prompt) -> Result<Vec<Prompt>, String> {
     let mut manager = state.lock().map_err(|e| e.to_string())?;
-    manager.create_prompt()
+    manager.create_prompt(init_prompt)
 }
 
 #[tauri::command]

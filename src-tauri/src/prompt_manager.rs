@@ -27,6 +27,18 @@ impl Default for Prompt {
     }
 }
 
+impl Prompt {
+    fn with_init(init_prompt: Prompt) -> Self {
+        Self {
+            id: ShortUuid::generate().to_string(),
+            title: init_prompt.title,
+            tip: init_prompt.tip,
+            content: init_prompt.content,
+            tags: init_prompt.tags,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct PromptManager {
     loaded: bool,
@@ -53,13 +65,13 @@ impl PromptManager {
         }
     }
 
-    pub fn create_prompt(&mut self) -> Result<Vec<Prompt>, String> {
+    pub fn create_prompt(&mut self, init_prompt: Prompt) -> Result<Vec<Prompt>, String> {
         if !self.loaded {
             self.loaded_prompt();
         }
 
-        let new_prompt = Prompt::default();
-        self.prompts.push(new_prompt.clone());
+        let new_prompt = Prompt::with_init(init_prompt);
+        self.prompts.push(new_prompt);
 
         self.save()?;
         Ok(self.prompts.clone())
