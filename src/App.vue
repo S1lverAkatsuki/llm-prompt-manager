@@ -170,6 +170,7 @@ const openEditor = async (item?: Prompt) => {
   await nextTick();
 
   editorRef.value?.showModal();
+  handleInputExpanded();
 };
 
 const resetEditor = () => {
@@ -234,21 +235,23 @@ const editorContextInputRef = ref<HTMLInputElement | null>(null);
 const editAreaRef = ref<HTMLElement | null>(null);
 
 
-const handleInputExpanded = () => {
+const handleInputExpanded = async () => {
+  await nextTick();
+
   if (!editorContextInputRef.value || !editAreaRef.value) return;
 
   // 不保存状态会在编辑的时候强制滚动当编辑位置
   const parentScroll = editAreaRef.value.scrollTop;
 
   editorContextInputRef.value.style.height = "auto";
-  editorContextInputRef.value.style.height = `${editorContextInputRef.value.scrollHeight}px`;
+  // 不加 8 会让滚动条挡住字
+  editorContextInputRef.value.style.height = `${editorContextInputRef.value.scrollHeight + 8}px`;
 
   editAreaRef.value.scrollTop = parentScroll;
 }
 
 const isEmptyTitle = computed<boolean>(() => editingPrompt.value?.title.length === 0);
 const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.length === 0);
-
 </script>
 
 <template>
@@ -322,7 +325,7 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
           <div class="collapse-content border-t border-base-300 bg-base-100/50" @click.stop>
             <div class="p-4">
               <div class="prose prose-sm max-w-none">
-                <p class="text-base-content">{{ item.content }}</p>
+                <p class="text-base-content whitespace-pre-wrap break-all">{{ item.content }}</p>
               </div>
               <div class="mt-4 flex gap-2 justify-end">
                 <button class="btn btn-sm btn-outline" @click.stop="openEditor(item)">
@@ -413,9 +416,10 @@ const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.leng
             <p v-show="isEmptyContent" class="text-xs text-error mt-1">
               请输入 Prompt 内容
             </p>
-            <textarea ref="editorContextInputRef" class="textarea box-border w-full mt-2 resize-none overflow-x-auto overflow-y-hidden whitespace-pre" rows="3"
-              v-model="editingPrompt.content" @input="handleInputExpanded" placeholder="例如：你是一只猫娘..." required
-              :class="{ 'input-error': isEmptyContent }" />
+            <textarea ref="editorContextInputRef"
+              class="textarea box-border w-full mt-2 resize-none overflow-x-auto overflow-y-hidden whitespace-pre [scrollbar-gutter:stable]"
+              rows="3" v-model="editingPrompt.content" @input="handleInputExpanded"
+              placeholder="例如：你是一只猫娘..." required :class="{ 'input-error': isEmptyContent }" />
           </div>
         </div>
         <div class="bg-base-200/50 border-t border-base-300 p-6 flex justify-end gap-2">
