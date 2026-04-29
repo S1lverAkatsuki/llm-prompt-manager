@@ -40,7 +40,7 @@ export function useEditor(items: Ref<Prompt[] | null>) {
         title: item.title,
         tip: item.tip,
         content: item.content,
-        tags: [...item.tags]
+        tags: [...item.tags],
       };
       editingId.value = item.id;
     } else {
@@ -58,9 +58,15 @@ export function useEditor(items: Ref<Prompt[] | null>) {
     deletedTimeout.value = null;
   };
 
-  const isEmptyTitle = computed<boolean>(() => editingPrompt.value?.title.length === 0);
-  const isEmptyContent = computed<boolean>(() => editingPrompt.value?.content.length === 0);
-  const canSave = computed<boolean>(() => !isEmptyContent.value && !isEmptyTitle.value);
+  const isEmptyTitle = computed<boolean>(
+    () => editingPrompt.value?.title.length === 0
+  );
+  const isEmptyContent = computed<boolean>(
+    () => editingPrompt.value?.content.length === 0
+  );
+  const canSave = computed<boolean>(
+    () => !isEmptyContent.value && !isEmptyTitle.value
+  );
 
   const handleSave = async (): Promise<boolean> => {
     const data = editingPrompt.value;
@@ -88,11 +94,11 @@ export function useEditor(items: Ref<Prompt[] | null>) {
       const updatedPrompt: Prompt = {
         ...items.value[index],
         ...data,
-        id: editingId.value
+        id: editingId.value,
       };
       try {
         await invoke("update", {
-          newPrompt: updatedPrompt
+          newPrompt: updatedPrompt,
         });
       } catch (e) {
         console.error(e);

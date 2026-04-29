@@ -5,7 +5,7 @@ export function useTheme() {
   const isInDarkMode = ref<boolean | null>(null);
 
   invoke<boolean>("get_dark_mode")
-    .then(x => isInDarkMode.value = x)
+    .then(x => (isInDarkMode.value = x))
     .catch(e => console.error(e));
 
   watch(isInDarkMode, (value, oldValue) => {
@@ -16,8 +16,7 @@ export function useTheme() {
 
     if (oldValue === null) return;
 
-    invoke("set_dark_mode", { newMode: value })
-      .catch(e => console.error(e));
+    invoke("set_dark_mode", { newMode: value }).catch(e => console.error(e));
   });
 
   return { isInDarkMode };

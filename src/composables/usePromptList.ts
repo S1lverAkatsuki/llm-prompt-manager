@@ -12,7 +12,7 @@ export function usePromptList() {
   const items = ref<Prompt[] | null>(null);
 
   invoke<Prompt[]>("read")
-    .then(data => items.value = data)
+    .then(data => (items.value = data))
     .catch(e => {
       items.value = [];
       console.error(e);
@@ -35,7 +35,8 @@ export function usePromptList() {
       copyTimeout.value = setTimeout(() => {
         copiedId.value = null;
       }, RESET_MILLISECOND);
-    } catch (err) {
+    } catch (err: unknown) {
+      console.error(err);
     }
   };
 

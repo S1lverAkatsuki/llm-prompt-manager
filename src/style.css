@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 @plugin "daisyui" {
   themes:
     corporate --default,
@@ -30,4 +31,80 @@ html[data-theme] * {
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.prose-md-preview {
+  line-height: 1.5;
+  font-size: 0.875rem;
+}
+
+.prose-md-preview :where(h1) {
+  font-size: 1.25rem;
+  margin-top: 0px;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+.prose-md-preview :where(h2) {
+  font-size: 1.125rem;
+  margin-top: 0.8em;
+  margin-bottom: 0.4em;
+  line-height: 1.3;
+}
+
+.prose-md-preview :where(h3) {
+  font-size: 1rem;
+  margin-top: 0.6em;
+  margin-bottom: 0.3em;
+  line-height: 1.3;
+}
+
+.prose-md-preview :where(h4, h5, h6) {
+  font-size: 0.875rem;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+  line-height: 1.3;
+}
+
+.prose-md-preview :where(p) {
+  margin-top: 0.3em;
+  margin-bottom: 0.3em;
+}
+
+.prose-md-preview :where(ul, ol) {
+  margin-top: 0.3em;
+  margin-bottom: 0.3em;
+  padding-left: 1.25em;
+}
+
+.prose-md-preview :where(li) {
+  margin-top: 0.1em;
+  margin-bottom: 0.1em;
+}
+
+.prose-md-preview :where(blockquote) {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding-left: 0.75em;
+}
+
+.prose-md-preview :where(pre) {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding: 0.5em 0.75em;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.prose-md-preview :where(code) {
+  font-size: 0.8rem;
+}
+
+.prose-md-preview :where(table) {
+  font-size: 0.8rem;
+}
+
+.prose-md-preview :where(hr) {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
 }

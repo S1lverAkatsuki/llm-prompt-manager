@@ -1,7 +1,7 @@
 # LLM-Prompt-Manager
 
 用于储存 Prompt 的小工具，提供了基本的标记存储与复制功能。  
-*银晓洗脑机器人用的邪恶审问道具 👎🤖*
+_银晓洗脑机器人用的邪恶审问道具 👎🤖_
 
 ## 界面预览
 
@@ -12,7 +12,7 @@
        style="flex: 1; width: 50%; height: auto; ">
 </div>
 
-*近乎完全复制 CC Swtich*
+_近乎完全复制 CC Swtich_
 
 ## 快速开始
 

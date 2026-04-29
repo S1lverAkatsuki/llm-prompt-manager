@@ -10,7 +10,8 @@ import SettingDialog from "@/components/SettingDialog.vue";
 import type { Prompt } from "@/types";
 
 const { isInDarkMode } = useTheme();
-const { items, expandedId, toggleExpand, copiedId, handleCopy } = usePromptList();
+const { items, expandedId, toggleExpand, copiedId, handleCopy } =
+  usePromptList();
 
 provide(itemsKey, items);
 
@@ -23,25 +24,29 @@ const toggleDark = () => {
   }
 };
 
-const handleCreate = () => {
-  promptEditorRef.value?.open();
-};
+const handleCreate = () => promptEditorRef.value?.open();
 
-const handleEdit = (item: Prompt) => {
-  promptEditorRef.value?.open(item);
-};
+const handleEdit = (item: Prompt) => promptEditorRef.value?.open(item);
 
-const openSetting = () => {
-  settingDialogRef.value?.show();
-};
+const openSetting = () => settingDialogRef.value?.show();
 </script>
-
+z
 <template>
   <main class="h-screen w-screen flex flex-col items-center justify-center">
-    <AppHeader :is-in-dark-mode="isInDarkMode" @toggle-dark="toggleDark" @open-setting="openSetting"
-      @create="handleCreate" />
-    <PromptList :items="items" :expanded-id="expandedId" :copied-id="copiedId"
-      @toggle-expand="toggleExpand" @copy="handleCopy" @edit="handleEdit" />
+    <AppHeader
+      :is-in-dark-mode="isInDarkMode"
+      @toggle-dark="toggleDark"
+      @open-setting="openSetting"
+      @create="handleCreate"
+    />
+    <PromptList
+      :items="items"
+      :expanded-id="expandedId"
+      :copied-id="copiedId"
+      @toggle-expand="toggleExpand"
+      @copy="handleCopy"
+      @edit="handleEdit"
+    />
     <PromptEditor ref="promptEditorRef" />
     <SettingDialog ref="settingDialogRef" />
   </main>
