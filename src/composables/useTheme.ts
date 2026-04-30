@@ -1,7 +1,7 @@
 import { ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 
-export function useTheme() {
+export const useTheme = () => {
   const isInDarkMode = ref<boolean | null>(null);
 
   invoke<boolean>("get_dark_mode")
@@ -20,4 +20,4 @@ export function useTheme() {
   });
 
   return { isInDarkMode };
-}
+};

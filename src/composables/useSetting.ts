@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 
-export function useSetting() {
+export const useSetting = () => {
   const data_path = ref<string>("");
   const version = ref<string>("");
 
@@ -13,4 +13,4 @@ export function useSetting() {
     .catch(e => console.error(e));
 
   return { data_path, version };
-}
+};

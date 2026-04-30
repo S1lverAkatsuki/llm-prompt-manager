@@ -3,7 +3,7 @@ import type { Ref } from "vue";
 import { Prompt, PromptData } from "@/types";
 import { invoke } from "@tauri-apps/api/core";
 
-export function useEditor(items: Ref<Prompt[] | null>) {
+export const useEditor = (items: Ref<Prompt[] | null>) => {
   const deletedTimeout = ref<NodeJS.Timeout | null>(null);
 
   const tagInput = ref<string>("");
@@ -179,4 +179,4 @@ export function useEditor(items: Ref<Prompt[] | null>) {
     isEmptyTitle,
     isEmptyContent,
   };
-}
+};

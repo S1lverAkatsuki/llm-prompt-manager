@@ -7,9 +7,7 @@ const { data_path, version } = useSetting();
 
 const dialogRef = ref<HTMLDialogElement | null>(null);
 
-const show = () => {
-  dialogRef.value?.showModal();
-};
+const show = () => dialogRef.value?.showModal();
 
 defineExpose({ show });
 </script>

@@ -3,7 +3,7 @@ import { Prompt } from "@/types";
 import { invoke } from "@tauri-apps/api/core";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
-export function usePromptList() {
+export const usePromptList = () => {
   const copiedId = ref<string | null>(null);
   const copyTimeout = ref<NodeJS.Timeout | null>(null);
 
@@ -18,9 +18,8 @@ export function usePromptList() {
       console.error(e);
     });
 
-  const toggleExpand = (id: string) => {
-    expandedId.value = expandedId.value === id ? null : id;
-  };
+  const toggleExpand = (id: string) =>
+    (expandedId.value = expandedId.value === id ? null : id);
 
   const handleCopy = async (id: string, content: string) => {
     try {
@@ -47,4 +46,4 @@ export function usePromptList() {
   });
 
   return { items, expandedId, toggleExpand, copiedId, handleCopy };
-}
+};
