@@ -10,7 +10,7 @@ import SettingDialog from "@/components/SettingDialog.vue";
 import type { Prompt } from "@/types";
 
 const { isInDarkMode } = useTheme();
-const { items, expandedId, toggleExpand, copiedId, handleCopy } =
+const { items, expandedId, toggleExpand, copiedId, handleCopy, handleReorder } =
   usePromptList();
 
 provide(itemsKey, items);
@@ -40,11 +40,11 @@ z
       @create="handleCreate"
     />
     <PromptList
-      :items="items"
       :expanded-id="expandedId"
       :copied-id="copiedId"
       @toggle-expand="toggleExpand"
       @copy="handleCopy"
+      @reorder="handleReorder"
       @edit="handleEdit"
     />
     <PromptEditor ref="promptEditorRef" />

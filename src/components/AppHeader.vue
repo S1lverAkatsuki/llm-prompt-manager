@@ -23,7 +23,8 @@ defineEmits<{
         LLM-Prompt-Manager
       </a>
       <label
-        class="swap swap-rotate btn btn-circle btn-ghost btn-sm text-base-content hover:bg-base-300"
+        class="swap swap-rotate btn btn-ghost btn-sm text-base-content hover:bg-base-300"
+        style="padding-inline: 0.25rem"
       >
         <input
           type="checkbox"
@@ -55,7 +56,8 @@ defineEmits<{
         </svg>
       </label>
       <button
-        class="btn btn-circle btn-ghost btn-sm text-base-content hover:bg-base-300"
+        class="btn btn-ghost btn-sm text-base-content hover:bg-base-300"
+        style="padding-inline: 0.25rem"
         @click="$emit('openSetting')"
       >
         <svg

@@ -109,10 +109,7 @@ defineExpose({ open });
             required
             :class="{ 'input-error': isEmptyTitle }"
           />
-          <p
-            v-show="isEmptyTitle"
-            class="text-xs text-error mt-1"
-          >
+          <p v-show="isEmptyTitle" class="text-xs text-error mt-1">
             请输入一个标题
           </p>
         </div>
@@ -175,20 +172,14 @@ defineExpose({ open });
                 添加
               </button>
             </div>
-            <p
-              v-if="isEmptyTag"
-              class="text-xs text-error mt-1"
-            >
+            <p v-if="isEmptyTag" class="text-xs text-error mt-1">
               重复的标签无法输入
             </p>
           </div>
         </div>
         <div>
           <p class="text-sm font-medium">内容 *</p>
-          <p
-            v-show="isEmptyContent"
-            class="text-xs text-error mt-1"
-          >
+          <p v-show="isEmptyContent" class="text-xs text-error mt-1">
             请输入 Prompt 内容
           </p>
           <textarea
@@ -226,11 +217,7 @@ defineExpose({ open });
         <form method="dialog">
           <button class="btn btn-ghost text-base-content/50">取消</button>
         </form>
-        <button
-          class="btn btn-primary"
-          @click="onSave"
-          :disabled="!canSave"
-        >
+        <button class="btn btn-primary" @click="onSave" :disabled="!canSave">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"

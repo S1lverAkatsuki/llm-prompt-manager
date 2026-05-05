@@ -39,11 +39,39 @@ export const usePromptList = () => {
     }
   };
 
+  const reorderTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleReorder = () => {
+    if (reorderTimeout.value) {
+      clearTimeout(reorderTimeout.value);
+    }
+
+    reorderTimeout.value = setTimeout(async () => {
+      if (!items.value) return;
+      const orderedIds = items.value.map(i => i.id);
+      try {
+        await invoke("reorder", { orderedIds });
+      } catch (e) {
+        console.error(e);
+      }
+    }, 500);
+  };
+
   onBeforeUnmount(() => {
     if (copyTimeout.value) {
       clearTimeout(copyTimeout.value);
     }
+    if (reorderTimeout.value) {
+      clearTimeout(reorderTimeout.value);
+    }
   });
 
-  return { items, expandedId, toggleExpand, copiedId, handleCopy };
+  return {
+    items,
+    expandedId,
+    toggleExpand,
+    copiedId,
+    handleCopy,
+    handleReorder,
+  };
 };

@@ -7,6 +7,5 @@
   "printWidth": 80,
   "bracketSpacing": true,
   "arrowParens": "avoid",
-  "singleAttributePerLine": true,
   "arrow-body-style": "as-needed"
 }

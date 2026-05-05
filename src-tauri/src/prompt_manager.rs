@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::{create_dir_all, read_to_string, write};
 use std::path::PathBuf;
 
@@ -135,6 +136,26 @@ impl PromptManager {
         } else {
             Err("未找到要删除项的 ID".to_string())
         }
+    }
+
+    pub fn reorder_prompts(&mut self, ordered_ids: Vec<String>) -> Result<(), String> {
+        let mut map: HashMap<String, Prompt> = HashMap::new();
+        for p in self.prompts.drain(..) {
+            map.insert(p.id.clone(), p);
+        }
+
+        let len = map.len();
+        let reordered: Vec<Prompt> = ordered_ids
+            .iter()
+            .filter_map(|id| map.remove(id))
+            .collect();
+
+        if reordered.len() != len {
+            return Err("ordered_ids 与已有项不匹配".to_string());
+        }
+
+        self.prompts = reordered;
+        self.save()
     }
 
     pub fn set_dark_mode(&mut self, new_mode: bool) -> Result<(), String> {

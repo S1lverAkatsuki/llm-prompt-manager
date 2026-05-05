@@ -37,6 +37,15 @@ fn delete(state: State<'_, Arc<Mutex<PromptManager>>>, deleted_id: String) -> Re
 }
 
 #[tauri::command]
+fn reorder(
+    state: State<'_, Arc<Mutex<PromptManager>>>,
+    ordered_ids: Vec<String>,
+) -> Result<(), String> {
+    let mut manager = state.lock().map_err(|e| e.to_string())?;
+    manager.reorder_prompts(ordered_ids)
+}
+
+#[tauri::command]
 fn get_data_path(state: State<'_, Arc<Mutex<PromptManager>>>) -> Result<String, String> {
     let manager = state.lock().map_err(|e| e.to_string())?;
     let path_str = manager
@@ -83,6 +92,7 @@ pub fn run() {
             read,
             update,
             delete,
+            reorder,
             get_data_path,
             get_version,
             get_dark_mode,

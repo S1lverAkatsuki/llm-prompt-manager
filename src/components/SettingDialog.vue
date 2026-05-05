@@ -13,11 +13,7 @@ defineExpose({ show });
 </script>
 
 <template>
-  <dialog
-    ref="dialogRef"
-    id="setting"
-    class="modal transition-none!"
-  >
+  <dialog ref="dialogRef" id="setting" class="modal transition-none!">
     <div class="modal-box w-[50vw] max-w-3xl h-[90vh] p-0 flex flex-col">
       <div
         class="flex items-center justify-between border-b border-base-300 px-6 py-4"

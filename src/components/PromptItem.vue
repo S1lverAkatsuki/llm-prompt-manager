@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, inject, type Ref } from "vue";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import type { Prompt } from "@/types";
@@ -10,11 +10,21 @@ const props = defineProps<{
   isCopied: boolean;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   toggleExpand: [id: string];
   copy: [id: string, content: string];
   edit: [item: Prompt];
 }>();
+
+const justDragged = inject<Ref<boolean>>("justDragged")!;
+const draggingItemId = inject<Ref<string | null>>("draggingItemId")!;
+
+const handleToggleExpand = () => {
+  if (justDragged.value) return;
+  emit("toggleExpand", props.item.id);
+};
+
+const isBeingDragged = computed(() => draggingItemId.value === props.item.id);
 
 const renderedContent = computed(() =>
   DOMPurify.sanitize(marked(props.item.content) as string)
@@ -24,14 +34,30 @@ const renderedContent = computed(() =>
 <template>
   <div
     class="collapse collapse-arrow bg-base-100 rounded-md border w-full"
-    :class="isExpanded ? 'border-primary collapse-open' : 'border-base-300'"
+    :class="[
+      isExpanded ? 'border-primary collapse-open' : 'border-base-300',
+      { 'opacity-40': isBeingDragged },
+    ]"
+    @click="handleToggleExpand"
   >
-    <input
-      type="checkbox"
-      :checked="isExpanded"
-      @change="$emit('toggleExpand', item.id)"
-    />
     <div class="collapse-title flex items-center gap-2 p-4 min-h-0 pr-12">
+      <div
+        class="drag-handle relative z-2 cursor-grab active:cursor-grabbing text-base-content/40 hover:text-base-content/70 shrink-0"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          class="w-4 h-4"
+        >
+          <circle cx="9" cy="6" r="1.5" />
+          <circle cx="15" cy="6" r="1.5" />
+          <circle cx="9" cy="12" r="1.5" />
+          <circle cx="15" cy="12" r="1.5" />
+          <circle cx="9" cy="18" r="1.5" />
+          <circle cx="15" cy="18" r="1.5" />
+        </svg>
+      </div>
       <div class="flex flex-col flex-1 min-w-0">
         <div class="flex flex-row gap-2 items-center mb-1">
           <p
