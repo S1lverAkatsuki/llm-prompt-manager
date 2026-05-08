@@ -1,6 +1,6 @@
 {
   "name": "llm-prompt-manager",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,10 +14,14 @@
     "fmt:check": "oxfmt --check"
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-clipboard-manager": "~2.3.2",
     "@tauri-apps/plugin-opener": "~2",
+    "dompurify": "^3.4.2",
+    "lucide-vue-next": "^1.0.0",
+    "marked": "^18.0.3",
     "tailwindcss": "^4.1.18",
     "vue": "^3.5.13",
     "vuedraggable": "^4.1.0"

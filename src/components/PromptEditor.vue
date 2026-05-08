@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ref, inject, nextTick } from "vue";
+import { ref, inject, nextTick, useTemplateRef } from "vue";
 import type { Prompt } from "@/types";
 import { itemsKey } from "@/injection-keys";
 import { useEditor } from "@/composables/useEditor";
+import { Save, Trash, X } from "lucide-vue-next";
 
 const items = inject(itemsKey)!;
 const dialogRef = ref<HTMLDialogElement | null>(null);
+
+const editorContextInputRef =
+  useTemplateRef<HTMLInputElement>("editorContextInput");
+const editAreaRef = useTemplateRef<HTMLDivElement>("editArea");
 
 const {
   tagInput,
@@ -22,12 +27,10 @@ const {
   handleSave,
   handleDelete,
   deletedTimeout,
-  editorContextInputRef,
-  editAreaRef,
   handleInputExpanded,
   isEmptyTitle,
   isEmptyContent,
-} = useEditor(items);
+} = useEditor(items, editorContextInputRef, editAreaRef);
 
 const open = async (item?: Prompt) => {
   openEditor(item);
@@ -81,17 +84,8 @@ defineExpose({ open });
           </p>
         </div>
         <form method="dialog">
-          <button class="btn btn-sm btn-circle btn-ghost">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="w-4 h-4"
-              fill="currentColor"
-            >
-              <path
-                d="M19,6.41,17.59,5,12,10.59,6.41,5,5,6.41,10.59,12,5,17.59,6.41,19,12,13.41,17.59,19,19,17.59,13.41,12Z"
-              />
-            </svg>
+          <button class="btn btn-sm btn-ghost p-1">
+            <X class="w-5"/>
           </button>
         </form>
       </div>
@@ -140,19 +134,10 @@ defineExpose({ open });
               >
                 {{ tag }}
                 <button
-                  class="btn btn-ghost btn-xs btn-circle h-5 w-5 p-0"
+                  class="btn btn-ghost btn-xs h-5 w-5 p-0"
                   @click="handleRemoveTag(tag)"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    class="w-3 h-3"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M19,6.41,17.59,5,12,10.59,6.41,5,5,6.41,10.59,12,5,17.59,6.41,19,12,13.41,17.59,19,19,17.59,13.41,12Z"
-                    />
-                  </svg>
+                  <X class="h-3"/>
                 </button>
               </span>
             </div>
@@ -202,32 +187,14 @@ defineExpose({ open });
           class="btn btn-outline btn-error mr-auto"
           @click="onDelete"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="w-4 h-4"
-            fill="currentColor"
-          >
-            <path
-              d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"
-            />
-          </svg>
+          <Trash class="w-5" />
           {{ deletedTimeout ? "确认删除？" : "删除" }}
         </button>
         <form method="dialog">
           <button class="btn btn-ghost text-base-content/50">取消</button>
         </form>
         <button class="btn btn-primary" @click="onSave" :disabled="!canSave">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="w-4 h-4"
-            fill="currentColor"
-          >
-            <path
-              d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"
-            />
-          </svg>
+          <Save class="w-5" />
           保存
         </button>
       </div>

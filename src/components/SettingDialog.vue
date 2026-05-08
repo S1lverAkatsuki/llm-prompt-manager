@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useSetting } from "@/composables/useSetting";
+import { X } from "lucide-vue-next";
 
 const { data_path, version } = useSetting();
 
@@ -20,17 +21,8 @@ defineExpose({ show });
       >
         <h3 class="text-lg font-semibold text-base-content">设置</h3>
         <form method="dialog">
-          <button class="btn btn-sm btn-circle btn-ghost">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="w-4 h-4"
-              fill="currentColor"
-            >
-              <path
-                d="M19,6.41,17.59,5,12,10.59,6.41,5,5,6.41,10.59,12,5,17.59,6.41,19,12,13.41,17.59,19,19,17.59,13.41,12Z"
-              />
-            </svg>
+          <button class="btn btn-sm btn-ghost p-1">
+            <X class="w-5" />
           </button>
         </form>
       </div>
@@ -57,9 +49,6 @@ defineExpose({ show });
                   version
                 }}</span>
               </div>
-              <p class="text-sm text-base-content/50">
-                银晓洗脑机器人用的邪恶工具 👎🤖
-              </p>
             </div>
           </div>
         </div>

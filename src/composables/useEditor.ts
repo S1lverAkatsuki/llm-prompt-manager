@@ -1,9 +1,10 @@
 import { ref, computed, nextTick, onBeforeUnmount } from "vue";
-import type { Ref } from "vue";
+import type { Ref, ShallowRef } from "vue";
 import { Prompt, PromptData } from "@/types";
 import { invoke } from "@tauri-apps/api/core";
 
-export const useEditor = (items: Ref<Prompt[] | null>) => {
+export const useEditor = (items: Ref<Prompt[] | null>, editorContextInputRef: Readonly<ShallowRef<HTMLInputElement | null>>,
+  editAreaRef: Readonly<ShallowRef<HTMLDivElement | null>>) => {
   const deletedTimeout = ref<NodeJS.Timeout | null>(null);
 
   const tagInput = ref<string>("");
@@ -141,8 +142,6 @@ export const useEditor = (items: Ref<Prompt[] | null>) => {
     }
   });
 
-  const editorContextInputRef = ref<HTMLInputElement | null>(null);
-  const editAreaRef = ref<HTMLElement | null>(null);
 
   const handleInputExpanded = async () => {
     await nextTick();
