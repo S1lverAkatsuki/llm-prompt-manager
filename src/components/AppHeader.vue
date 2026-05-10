@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { Funnel, Moon, Plus, Settings, Sun } from 'lucide-vue-next';
+import { Funnel, Moon, Plus, Settings, Sun } from "lucide-vue-next";
+import { useFilterStore } from "@/composables/useFilterStore";
+import { ref } from "vue";
+import SelectedTagDialog from "./SelectedTagDialog.vue";
 
 defineProps<{
   isInDarkMode: boolean | null;
@@ -10,6 +13,12 @@ defineEmits<{
   openSetting: [];
   create: [];
 }>();
+
+const tagsSelectorDialogRef = ref<HTMLDialogElement | null>(null);
+
+const openTagSelector = () => tagsSelectorDialogRef.value?.show();
+
+const { searchedTitle, selectedTags } = useFilterStore();
 </script>
 
 <template>
@@ -38,7 +47,7 @@ defineEmits<{
             :disabled="isInDarkMode === null"
           />
 
-          <Sun class="swap-on w-5"/>
+          <Sun class="swap-on w-5" />
 
           <Moon class="swap-off w-5" />
         </label>
@@ -47,22 +56,30 @@ defineEmits<{
           style="padding-inline: 0.25rem"
           @click="$emit('openSetting')"
         >
-          <Settings class="w-5"/>
+          <Settings class="w-5" />
         </button>
         <button
           class="btn ml-auto btn-primary whitespace-nowrap pl-5 pr-5"
           @click="$emit('create')"
         >
-          <Plus class="w-5"/>
+          <Plus class="w-5" />
           添加新项
         </button>
       </div>
       <div class="w-full flex flex-row gap-2 content-around flex-nowrap">
-        <input class="input input-xs" />
-        <button class="btn btn-xs">
-          <Funnel class="w-4"/>
+        <input v-model.trim="searchedTitle" class="input input-xs" />
+        <button
+          class="btn btn-xs"
+          :class="{ 'btn-primary': selectedTags.length > 0 }"
+          @click="openTagSelector"
+        >
+          <Funnel class="w-4" />
+          <span v-if="selectedTags.length > 0" class="badge badge-sm ml-1 p-1.5">{{
+            selectedTags.length
+          }}</span>
         </button>
       </div>
     </div>
   </div>
+  <SelectedTagDialog ref="tagsSelectorDialogRef" />
 </template>

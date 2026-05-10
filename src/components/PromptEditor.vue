@@ -8,12 +8,12 @@ import {
   watch,
 } from "vue";
 import type { Prompt } from "@/types";
-import { itemsKey, tagsKey } from "@/injection-keys";
+import { promptsKey, tagsKey } from "@/injection-keys";
 import { useEditor } from "@/composables/useEditor";
 import { Save, Trash, X } from "lucide-vue-next";
 import { useSuggestTag } from "@/composables/useSuggestTag";
 
-const items = inject(itemsKey)!;
+const prompts = inject(promptsKey)!;
 const { tags, refresh } = inject(tagsKey)!;
 const dialogRef = ref<HTMLDialogElement | null>(null);
 
@@ -39,7 +39,7 @@ const {
   handleInputExpanded,
   isEmptyTitle,
   isEmptyContent,
-} = useEditor(items, editorContextInputRef, editAreaRef);
+} = useEditor(prompts, editorContextInputRef, editAreaRef);
 
 const open = async (item?: Prompt) => {
   openEditor(item);
@@ -133,10 +133,14 @@ const submitSelectedTag = (tag: string) => {
             v-model.trim="editingPrompt.title"
             placeholder="Prompt 项的标题"
             required
+            maxlength="50"
             :class="{ 'input-error': isEmptyTitle }"
           />
           <p v-show="isEmptyTitle" class="text-xs text-error mt-1">
             请输入一个标题
+          </p>
+          <p class="text-xs text-base-content/30 mt-1">
+            {{ (editingPrompt?.title?.length ?? 0) }} / 50
           </p>
         </div>
         <div>
@@ -180,6 +184,7 @@ const submitSelectedTag = (tag: string) => {
                   v-model.trim="tagInput"
                   @keyup.enter="handleAddTag"
                   placeholder="输入要添加的标签项"
+                  maxlength="20"
                   :class="{ 'input-error': isEmptyTag }"
                 />
                 <ul
@@ -206,6 +211,9 @@ const submitSelectedTag = (tag: string) => {
             </div>
             <p v-if="isEmptyTag" class="text-xs text-error mt-1">
               重复的标签无法输入
+            </p>
+            <p class="text-xs text-base-content/30 mt-1">
+              {{ tagInput.length }} / 20
             </p>
           </div>
         </div>

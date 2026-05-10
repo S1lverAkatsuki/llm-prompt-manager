@@ -4,7 +4,7 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useSetting } from "@/composables/useSetting";
 import { X } from "lucide-vue-next";
 
-const { data_path, version } = useSetting();
+const { dataPath, version } = useSetting();
 
 const dialogRef = ref<HTMLDialogElement | null>(null);
 
@@ -35,8 +35,8 @@ defineExpose({ show });
           <a
             class="link link-info w-full whitespace-normal break-all"
             title="用资源管理器打开"
-            @click="revealItemInDir(data_path!)"
-            >{{ data_path }}</a
+            @click="revealItemInDir(dataPath!)"
+            >{{ dataPath }}</a
           >
         </div>
         <div>

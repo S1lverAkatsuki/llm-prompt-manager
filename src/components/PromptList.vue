@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { inject, ref, provide } from "vue";
+import { inject, ref, provide, computed } from "vue";
 import type { Prompt } from "@/types";
 import PromptItem from "@/components/PromptItem.vue";
 import draggable from "vuedraggable";
-import { itemsKey } from "@/injection-keys";
+import { promptsKey } from "@/injection-keys";
+import { useFiltratePrompts } from "@/composables/useFiltratePrompts";
+import { useFilterStore } from "@/composables/useFilterStore";
 
-const items = inject(itemsKey)!;
+const prompts = inject(promptsKey)!;
+const { searchedTitle, selectedTags } = useFilterStore();
 
 const props = defineProps<{
   expandedId: string | null;
@@ -19,6 +22,9 @@ const emit = defineEmits<{
   reorder: [];
 }>();
 
+const { filtratedPrompts } = useFiltratePrompts(prompts);
+const hasFiltrated = computed<boolean>(() => selectedTags.value.length !== 0 || searchedTitle.value.length !== 0);
+
 const isDragging = ref(false);
 const draggingItemId = ref<string | null>(null);
 const collapsedIdForDrag = ref<string | null>(null);
@@ -31,8 +37,8 @@ provide("draggingItemId", draggingItemId);
 const handleDragStart = (evt: { oldIndex: number }) => {
   isDragging.value = true;
 
-  if (!items.value) return;
-  const draggedItem = items.value[evt.oldIndex];
+  if (!prompts.value) return;
+  const draggedItem = prompts.value[evt.oldIndex];
   if (!draggedItem) return;
 
   draggingItemId.value = draggedItem.id;
@@ -66,20 +72,20 @@ const handleDragEnd = () => {
     :class="{ 'is-dragging': isDragging }"
   >
     <div
-      v-if="items == null"
+      v-if="filtratedPrompts == null"
       class="h-full flex items-center justify-center text-base-content/70"
     >
       正在加载
     </div>
     <div
-      v-else-if="items.length === 0"
+      v-else-if="filtratedPrompts.length === 0"
       class="h-full flex items-center justify-center text-base-content/50"
     >
-      当前没有存储 Prompt
+      {{ hasFiltrated ? "无符合条件的筛选结果" : "当前没有存储 Prompt" }}
     </div>
     <draggable
       v-else
-      :list="items"
+      :list="filtratedPrompts"
       item-key="id"
       handle=".drag-handle"
       :animation="200"

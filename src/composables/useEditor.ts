@@ -21,7 +21,7 @@ export const useEditor = (items: Ref<Prompt[] | null>, editorContextInputRef: Re
 
   const canAddTag = computed(() => {
     const value = tagInput.value;
-    return value.length > 0 && !isEmptyTag.value;
+    return value.length > 0 && value.length <= 20 && !isEmptyTag.value;
   });
 
   const handleAddTag = () => {
