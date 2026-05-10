@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::{create_dir_all, read_to_string, write};
 use std::path::PathBuf;
 
@@ -55,6 +55,7 @@ pub struct PromptManager {
     // 能在序列化和反序列化时跳过下面这条
     data_file_path: PathBuf,
     pub prompts: Vec<Prompt>,
+    tags: Vec<String>,
 }
 
 impl Default for PromptManager {
@@ -63,6 +64,7 @@ impl Default for PromptManager {
             is_in_dark_mode: false,
             data_file_path: PathBuf::new(),
             prompts: Vec::new(),
+            tags: Vec::new(),
         }
     }
 }
@@ -105,6 +107,7 @@ impl PromptManager {
     pub fn create_prompt(&mut self, data: PromptData) -> Result<Prompt, String> {
         let new_prompt = Prompt::from_data(data);
         self.prompts.push(new_prompt.clone());
+        self.rebuild_tags();
 
         self.save()?;
         Ok(new_prompt)
@@ -117,6 +120,7 @@ impl PromptManager {
     pub fn update_prompt(&mut self, new_prompt: Prompt) -> Result<(), String> {
         if let Some(index) = self.prompts.iter().position(|p| p.id == new_prompt.id) {
             self.prompts[index] = new_prompt;
+            self.rebuild_tags();
             self.save()?;
             Ok(())
         } else {
@@ -131,6 +135,7 @@ impl PromptManager {
 
         // 少一个代表有删了
         if self.prompts.len() < initial_len {
+            self.rebuild_tags();
             self.save()?;
             Ok(())
         } else {
@@ -169,6 +174,35 @@ impl PromptManager {
 
     pub fn get_data_file_path(&self) -> &PathBuf {
         &self.data_file_path
+    }
+
+    fn rebuild_tags(&mut self) {
+        let mut tag_set = HashSet::new();
+        for prompt in &self.prompts {
+            for tag in &prompt.tags {
+                tag_set.insert(tag.clone());
+            }
+        }
+        let mut v: Vec<String> = tag_set.into_iter().collect();
+        v.sort();
+        self.tags = v;
+    }
+
+    pub fn get_all_tags(&self) -> Vec<String> {
+        self.tags.clone()
+    }
+
+    pub fn add_tag(&mut self, tag: String) -> Result<(), String> {
+        if !self.tags.contains(&tag) {
+            self.tags.push(tag);
+            self.save()?;
+        }
+        Ok(())
+    }
+
+    pub fn remove_tag(&mut self, tag: String) -> Result<(), String> {
+        self.tags.retain(|t| t != &tag);
+        self.save()
     }
 
     fn save(&self) -> Result<(), String> {

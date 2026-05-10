@@ -71,6 +71,24 @@ fn set_dark_mode(
     manager.set_dark_mode(new_mode)
 }
 
+#[tauri::command]
+fn get_all_tags(state: State<'_, Arc<Mutex<PromptManager>>>) -> Result<Vec<String>, String> {
+    let manager = state.lock().map_err(|e| e.to_string())?;
+    Ok(manager.get_all_tags())
+}
+
+#[tauri::command]
+fn add_tag(state: State<'_, Arc<Mutex<PromptManager>>>, tag: String) -> Result<(), String> {
+    let mut manager = state.lock().map_err(|e| e.to_string())?;
+    manager.add_tag(tag)
+}
+
+#[tauri::command]
+fn remove_tag(state: State<'_, Arc<Mutex<PromptManager>>>, tag: String) -> Result<(), String> {
+    let mut manager = state.lock().map_err(|e| e.to_string())?;
+    manager.remove_tag(tag)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -97,6 +115,9 @@ pub fn run() {
             get_version,
             get_dark_mode,
             set_dark_mode,
+            get_all_tags,
+            add_tag,
+            remove_tag,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

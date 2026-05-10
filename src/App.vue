@@ -2,7 +2,8 @@
 import { ref, provide } from "vue";
 import { useTheme } from "@/composables/useTheme";
 import { usePromptList } from "@/composables/usePromptList";
-import { itemsKey } from "@/injection-keys";
+import { useTags } from "@/composables/useTags";
+import { itemsKey, tagsKey } from "@/injection-keys";
 import AppHeader from "@/components/AppHeader.vue";
 import PromptList from "@/components/PromptList.vue";
 import PromptEditor from "@/components/PromptEditor.vue";
@@ -14,6 +15,9 @@ const { items, expandedId, toggleExpand, copiedId, handleCopy, handleReorder } =
   usePromptList();
 
 provide(itemsKey, items);
+
+const { tags, addTag, removeTag, refresh } = useTags();
+provide(tagsKey, { tags, addTag, removeTag, refresh });
 
 const promptEditorRef = ref<InstanceType<typeof PromptEditor> | null>(null);
 const settingDialogRef = ref<InstanceType<typeof SettingDialog> | null>(null);

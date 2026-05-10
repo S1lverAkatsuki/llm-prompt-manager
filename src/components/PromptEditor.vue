@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { ref, inject, nextTick, useTemplateRef } from "vue";
+import {
+  ref,
+  inject,
+  nextTick,
+  useTemplateRef,
+  computed,
+  watch,
+} from "vue";
 import type { Prompt } from "@/types";
-import { itemsKey } from "@/injection-keys";
+import { itemsKey, tagsKey } from "@/injection-keys";
 import { useEditor } from "@/composables/useEditor";
 import { Save, Trash, X } from "lucide-vue-next";
+import { useSuggestTag } from "@/composables/useSuggestTag";
 
 const items = inject(itemsKey)!;
+const { tags, refresh } = inject(tagsKey)!;
 const dialogRef = ref<HTMLDialogElement | null>(null);
 
 const editorContextInputRef =
@@ -42,6 +51,7 @@ const open = async (item?: Prompt) => {
 const onSave = async () => {
   const shouldClose = await handleSave();
   if (shouldClose) {
+    refresh();
     dialogRef.value?.close();
   }
 };
@@ -49,6 +59,7 @@ const onSave = async () => {
 const onDelete = async () => {
   const shouldClose = await handleDelete();
   if (shouldClose) {
+    refresh();
     dialogRef.value?.close();
   }
 };
@@ -58,6 +69,27 @@ const onDialogClose = () => {
 };
 
 defineExpose({ open });
+
+const { suggestTags } = useSuggestTag(tags, tagInput);
+
+const isDropdownOpen = ref<boolean>(false);
+const dropdownClass = computed<string>(() =>
+  isDropdownOpen.value ? "dropdown-open" : "dropdown-close"
+);
+
+watch(
+  suggestTags,
+  () => {
+    isDropdownOpen.value = suggestTags.value.length !== 0;
+  },
+  { immediate: true }
+);
+
+const submitSelectedTag = (tag: string) => {
+  tagInput.value = tag;
+  handleAddTag();
+  isDropdownOpen.value = false;
+};
 </script>
 
 <template>
@@ -85,7 +117,7 @@ defineExpose({ open });
         </div>
         <form method="dialog">
           <button class="btn btn-sm btn-ghost p-1">
-            <X class="w-5"/>
+            <X class="w-5" />
           </button>
         </form>
       </div>
@@ -137,18 +169,33 @@ defineExpose({ open });
                   class="btn btn-ghost btn-xs h-5 w-5 p-0"
                   @click="handleRemoveTag(tag)"
                 >
-                  <X class="h-3"/>
+                  <X class="h-3" />
                 </button>
               </span>
             </div>
             <div class="join w-full">
-              <input
-                class="input input-sm join-item flex-1"
-                v-model.trim="tagInput"
-                @keyup.enter="handleAddTag"
-                placeholder="输入要添加的标签项"
-                :class="{ 'input-error': isEmptyTag }"
-              />
+              <div class="dropdown w-full" :class="dropdownClass">
+                <input
+                  class="input input-sm join-item flex-1 w-full"
+                  v-model.trim="tagInput"
+                  @keyup.enter="handleAddTag"
+                  placeholder="输入要添加的标签项"
+                  :class="{ 'input-error': isEmptyTag }"
+                />
+                <ul
+                  tabindex="-1"
+                  class="dropdown-content menu bg-base-100 rounded-box z-1 w-full p-2 shadow-sm"
+                >
+                  <template v-for="tag in suggestTags">
+                    <li>
+                      <span @click.prevent="submitSelectedTag(tag)">{{
+                        tag
+                      }}</span>
+                    </li>
+                  </template>
+                </ul>
+              </div>
+
               <button
                 class="btn btn-sm join-item"
                 @click="handleAddTag"
