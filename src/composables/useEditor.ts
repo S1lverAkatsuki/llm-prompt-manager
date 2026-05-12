@@ -143,6 +143,7 @@ export const useEditor = (items: Ref<Prompt[] | null>, editorContextInputRef: Re
     }
   });
 
+  let initHeight: number | null = null;
 
   const handleInputExpanded = async () => {
     await nextTick();
@@ -150,9 +151,15 @@ export const useEditor = (items: Ref<Prompt[] | null>, editorContextInputRef: Re
     if (!editorContextInputRef.value || !editAreaRef.value) return;
 
     const parentScroll = editAreaRef.value.scrollTop;
+    const el = editorContextInputRef.value;
+    
+    if (initHeight === null) {
+      initHeight = el.clientHeight;
+    }
 
-    editorContextInputRef.value.style.height = "auto";
-    editorContextInputRef.value.style.height = `${editorContextInputRef.value.scrollHeight + 8}px`;
+    el.style.height = "auto";
+    el.style.minHeight = `${Math.max(el.scrollHeight, initHeight)}px`;
+    el.style.height = `${el.scrollHeight}px`;
 
     editAreaRef.value.scrollTop = parentScroll;
   };

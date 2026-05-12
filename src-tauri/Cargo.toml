@@ -1,6 +1,6 @@
 [package]
 name = "llm-prompt-manager"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Tauri application for managing LLM prompts"
 authors = ["SilverAkatsuki"]
 edition = "2021"
