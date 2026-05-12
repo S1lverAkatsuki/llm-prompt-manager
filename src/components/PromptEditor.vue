@@ -1,17 +1,11 @@
 <script setup lang="ts">
-import {
-  ref,
-  inject,
-  nextTick,
-  useTemplateRef,
-  computed,
-  watch,
-} from "vue";
+import { ref, inject, nextTick, useTemplateRef, computed, watch } from "vue";
 import type { Prompt } from "@/types";
 import { promptsKey, tagsKey } from "@/injection-keys";
 import { useEditor } from "@/composables/useEditor";
 import { Save, Trash, X } from "lucide-vue-next";
 import { useSuggestTag } from "@/composables/useSuggestTag";
+import { MAX_TAG_LENGTH, MAX_TITLE_LENGTH } from "@/constants.ts";
 
 const prompts = inject(promptsKey)!;
 const { tags, refresh } = inject(tagsKey)!;
@@ -122,7 +116,7 @@ const submitSelectedTag = (tag: string) => {
         </form>
       </div>
       <div
-        ref="editAreaRef"
+        ref="editArea"
         class="flex-1 overflow-y-auto p-5 space-y-6 [scrollbar-gutter:stable_both-edges]"
       >
         <div>
@@ -133,14 +127,14 @@ const submitSelectedTag = (tag: string) => {
             v-model.trim="editingPrompt.title"
             placeholder="Prompt 项的标题"
             required
-            maxlength="50"
+            :maxlength="MAX_TITLE_LENGTH"
             :class="{ 'input-error': isEmptyTitle }"
           />
           <p v-show="isEmptyTitle" class="text-xs text-error mt-1">
             请输入一个标题
           </p>
           <p class="text-xs text-base-content/30 mt-1">
-            {{ (editingPrompt?.title?.length ?? 0) }} / 50
+            {{ editingPrompt?.title?.length ?? 0 }} / {{ MAX_TITLE_LENGTH }}
           </p>
         </div>
         <div>
@@ -184,7 +178,7 @@ const submitSelectedTag = (tag: string) => {
                   v-model.trim="tagInput"
                   @keyup.enter="handleAddTag"
                   placeholder="输入要添加的标签项"
-                  maxlength="20"
+                  :maxlength="MAX_TAG_LENGTH"
                   :class="{ 'input-error': isEmptyTag }"
                 />
                 <ul
@@ -210,10 +204,10 @@ const submitSelectedTag = (tag: string) => {
               </button>
             </div>
             <p v-if="isEmptyTag" class="text-xs text-error mt-1">
-              重复的标签无法输入
+              重复的标签无法添加
             </p>
             <p class="text-xs text-base-content/30 mt-1">
-              {{ tagInput.length }} / 20
+              {{ tagInput.length }} / {{ MAX_TAG_LENGTH }}
             </p>
           </div>
         </div>
@@ -223,7 +217,7 @@ const submitSelectedTag = (tag: string) => {
             请输入 Prompt 内容
           </p>
           <textarea
-            ref="editorContextInputRef"
+            ref="editorContextInput"
             class="textarea box-border w-full mt-2 resize-none overflow-x-auto overflow-y-hidden whitespace-pre [scrollbar-gutter:stable]"
             rows="3"
             v-model="editingPrompt.content"

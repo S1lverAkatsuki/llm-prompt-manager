@@ -1,6 +1,7 @@
 import { ref, computed, nextTick, onBeforeUnmount } from "vue";
 import type { Ref, ShallowRef } from "vue";
 import { Prompt, PromptData } from "@/types";
+import { MAX_TAG_LENGTH } from "@/constants.ts";
 import { invoke } from "@tauri-apps/api/core";
 
 export const useEditor = (items: Ref<Prompt[] | null>, editorContextInputRef: Readonly<ShallowRef<HTMLInputElement | null>>,
@@ -21,7 +22,7 @@ export const useEditor = (items: Ref<Prompt[] | null>, editorContextInputRef: Re
 
   const canAddTag = computed(() => {
     const value = tagInput.value;
-    return value.length > 0 && value.length <= 20 && !isEmptyTag.value;
+    return value.length > 0 && value.length <= MAX_TAG_LENGTH && !isEmptyTag.value;
   });
 
   const handleAddTag = () => {
