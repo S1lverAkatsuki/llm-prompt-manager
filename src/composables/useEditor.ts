@@ -4,8 +4,11 @@ import { Prompt, PromptData } from "@/types";
 import { MAX_TAG_LENGTH } from "@/constants.ts";
 import { invoke } from "@tauri-apps/api/core";
 
-export const useEditor = (items: Ref<Prompt[] | null>, editorContextInputRef: Readonly<ShallowRef<HTMLInputElement | null>>,
-  editAreaRef: Readonly<ShallowRef<HTMLDivElement | null>>) => {
+export const useEditor = (
+  items: Ref<Prompt[] | null>,
+  editorContextInputRef: Readonly<ShallowRef<HTMLInputElement | null>>,
+  editAreaRef: Readonly<ShallowRef<HTMLDivElement | null>>
+) => {
   const deletedTimeout = ref<NodeJS.Timeout | null>(null);
 
   const tagInput = ref<string>("");
@@ -22,7 +25,9 @@ export const useEditor = (items: Ref<Prompt[] | null>, editorContextInputRef: Re
 
   const canAddTag = computed(() => {
     const value = tagInput.value;
-    return value.length > 0 && value.length <= MAX_TAG_LENGTH && !isEmptyTag.value;
+    return (
+      value.length > 0 && value.length <= MAX_TAG_LENGTH && !isEmptyTag.value
+    );
   });
 
   const handleAddTag = () => {
@@ -152,7 +157,7 @@ export const useEditor = (items: Ref<Prompt[] | null>, editorContextInputRef: Re
 
     const parentScroll = editAreaRef.value.scrollTop;
     const el = editorContextInputRef.value;
-    
+
     if (initHeight === null) {
       initHeight = el.clientHeight;
     }

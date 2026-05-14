@@ -213,7 +213,9 @@ const submitSelectedTag = (tag: string) => {
         </div>
         <div>
           <span class="text-sm font-medium">内容 *</span>
-          <span class="text-sm font-medium text-base-content/50">（可使用 CommonMarkdown 语法）</span>
+          <span class="text-sm font-medium text-base-content/50"
+            >（可使用 CommonMarkdown 语法）</span
+          >
           <p v-show="isEmptyContent" class="text-xs text-error mt-1">
             请输入 Prompt 内容
           </p>

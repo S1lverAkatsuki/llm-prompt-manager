@@ -13,11 +13,11 @@ export const useTags = () => {
   };
 
   const addTag = async (tag: string) => {
-    invoke("add_tag", { tag: tag }).catch(console.error)
+    invoke("add_tag", { tag: tag }).catch(console.error);
   };
 
   const removeTag = async (tag: string) => {
-    invoke("remove_tag", { tag: tag }).catch(console.error)
+    invoke("remove_tag", { tag: tag }).catch(console.error);
   };
 
   refresh();

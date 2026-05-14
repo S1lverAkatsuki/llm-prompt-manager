@@ -1,12 +1,15 @@
 import { Ref, ref, watch } from "vue";
 import Fuse from "fuse.js";
 
-export const useSuggestTag = (availableTags: Ref<string[]>, tagInput: Ref<string>) => {
+export const useSuggestTag = (
+  availableTags: Ref<string[]>,
+  tagInput: Ref<string>
+) => {
   const suggestTags = ref<string[]>([]);
 
   let fuse = new Fuse(availableTags.value, {
     includeScore: true,
-    threshold: 0.3
+    threshold: 0.3,
   });
 
   const updateSuggestTags = () => {
@@ -14,7 +17,7 @@ export const useSuggestTag = (availableTags: Ref<string[]>, tagInput: Ref<string
       suggestTags.value = [];
     } else {
       const results = fuse.search(tagInput.value);
-      suggestTags.value = results.map((result) => result.item);
+      suggestTags.value = results.map(result => result.item);
     }
   };
 
@@ -23,12 +26,12 @@ export const useSuggestTag = (availableTags: Ref<string[]>, tagInput: Ref<string
   watch(availableTags, () => {
     fuse = new Fuse(availableTags.value, {
       includeScore: true,
-      threshold: 0.3
+      threshold: 0.3,
     });
     updateSuggestTags();
   });
 
   return {
-    suggestTags
+    suggestTags,
   };
 };

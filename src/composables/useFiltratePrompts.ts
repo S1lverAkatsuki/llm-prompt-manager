@@ -16,15 +16,20 @@ export const useFiltratePrompts = (originalPrompts: Ref<Prompt[] | null>) => {
 
   const updated = () => {
     if (originalPrompts.value === null || fuse === null) return;
-    const neverNullFuse = fuse;   // 虽然可以使用 ! 断言，但是这样更好一些
+    const neverNullFuse = fuse; // 虽然可以使用 ! 断言，但是这样更好一些
 
     filtratedPrompts.value = originalPrompts.value.filter(prompt => {
-      if (selectedTags.value.length > 0 && !prompt.tags.some(tag => selectedTags.value.includes(tag))) {
+      if (
+        selectedTags.value.length > 0 &&
+        !prompt.tags.some(tag => selectedTags.value.includes(tag))
+      ) {
         return false;
       }
 
       if (searchedTitle.value.trim()) {
-        const results = neverNullFuse.search(searchedTitle.value).map(result => result.item);
+        const results = neverNullFuse
+          .search(searchedTitle.value)
+          .map(result => result.item);
         if (!results.includes(prompt.title)) return false;
       }
 
@@ -32,10 +37,14 @@ export const useFiltratePrompts = (originalPrompts: Ref<Prompt[] | null>) => {
     });
   };
 
-  watch(originalPrompts, () => {
-    initFuse();
-    updated();
-  }, { immediate: true, deep: true });
+  watch(
+    originalPrompts,
+    () => {
+      initFuse();
+      updated();
+    },
+    { immediate: true, deep: true }
+  );
   watch(selectedTags, updated);
   watch(searchedTitle, updated);
 

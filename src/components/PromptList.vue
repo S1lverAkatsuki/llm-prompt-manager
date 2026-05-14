@@ -23,7 +23,9 @@ const emit = defineEmits<{
 }>();
 
 const { filtratedPrompts } = useFiltratePrompts(prompts);
-const hasFiltrated = computed<boolean>(() => selectedTags.value.length !== 0 || searchedTitle.value.length !== 0);
+const hasFiltrated = computed<boolean>(
+  () => selectedTags.value.length !== 0 || searchedTitle.value.length !== 0
+);
 
 const isDragging = ref(false);
 const draggingItemId = ref<string | null>(null);

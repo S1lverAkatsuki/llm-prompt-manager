@@ -67,16 +67,22 @@ const { searchedTitle, selectedTags } = useFilterStore();
         </button>
       </div>
       <div class="w-full flex flex-row gap-2 content-around flex-nowrap">
-        <input v-model.trim="searchedTitle" class="input input-xs" placeholder="输入标题以搜索"/>
+        <input
+          v-model.trim="searchedTitle"
+          class="input input-xs"
+          placeholder="输入标题以搜索"
+        />
         <button
           class="btn btn-xs"
           :class="{ 'btn-primary': selectedTags.length > 0 }"
           @click="openTagSelector"
         >
           <Funnel class="w-4" />
-          <span v-if="selectedTags.length > 0" class="badge badge-sm ml-1 p-1.5">{{
-            selectedTags.length
-          }}</span>
+          <span
+            v-if="selectedTags.length > 0"
+            class="badge badge-sm ml-1 p-1.5"
+            >{{ selectedTags.length }}</span
+          >
         </button>
       </div>
     </div>
