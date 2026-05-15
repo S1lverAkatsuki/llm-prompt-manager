@@ -1,7 +1,7 @@
 mod prompt_manager;
 use std::sync::{Arc, Mutex};
 
-use prompt_manager::{Prompt, PromptData, PromptManager};
+use prompt_manager::{ModelConfig, Prompt, PromptData, PromptManager};
 use tauri::{Manager, State};
 
 #[tauri::command]
@@ -89,6 +89,36 @@ fn remove_tag(state: State<'_, Arc<Mutex<PromptManager>>>, tag: String) -> Resul
     manager.remove_tag(tag)
 }
 
+#[tauri::command]
+fn get_ai_enabled(state: State<'_, Arc<Mutex<PromptManager>>>) -> Result<bool, String> {
+    let manager = state.lock().map_err(|e| e.to_string())?;
+    Ok(manager.get_ai_enabled())
+}
+
+#[tauri::command]
+fn set_ai_enabled(
+    state: State<'_, Arc<Mutex<PromptManager>>>,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut manager = state.lock().map_err(|e| e.to_string())?;
+    manager.set_ai_enabled(enabled)
+}
+
+#[tauri::command]
+fn get_model_config(state: State<'_, Arc<Mutex<PromptManager>>>) -> Result<Option<ModelConfig>, String> {
+    let manager = state.lock().map_err(|e| e.to_string())?;
+    Ok(manager.get_model_config())
+}
+
+#[tauri::command]
+fn set_model_config(
+    state: State<'_, Arc<Mutex<PromptManager>>>,
+    config: ModelConfig,
+) -> Result<(), String> {
+    let mut manager = state.lock().map_err(|e| e.to_string())?;
+    manager.set_model_config(config)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -118,6 +148,10 @@ pub fn run() {
             get_all_tags,
             add_tag,
             remove_tag,
+            get_ai_enabled,
+            set_ai_enabled,
+            get_model_config,
+            set_model_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

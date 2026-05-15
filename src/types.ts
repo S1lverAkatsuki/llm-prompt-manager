@@ -7,3 +7,10 @@ export interface Prompt {
 }
 
 export type PromptData = Omit<Prompt, "id">;
+
+export interface ModelConfig {
+  api_key: string;
+  provider: string;
+  model: string;
+  base_url: string;
+}

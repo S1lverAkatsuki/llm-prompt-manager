@@ -1,21 +1,80 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed, watch } from "vue";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useSetting } from "@/composables/useSetting";
-import { X } from "lucide-vue-next";
+import { useAiConfig } from "@/composables/useAiConfig";
+import { PROVIDERS } from "@/constants";
+import type { ModelConfig } from "@/types";
+import { X, Eye, EyeOff } from "lucide-vue-next";
 
 const { dataPath, version } = useSetting();
+const { isAiEnabled, modelConfig, loadAiConfig, toggleAi, saveModelConfig } =
+  useAiConfig();
 
 const dialogRef = ref<HTMLDialogElement | null>(null);
 
-const show = () => dialogRef.value?.showModal();
+const show = () => {
+  loadAiConfig();
+  dialogRef.value?.showModal();
+};
+
+const apiKey = ref("");
+const selectedProvider = ref("openai");
+const selectedModel = ref("");
+const customModel = ref("");
+const customBaseUrl = ref("");
+const showKey = ref(false);
+
+watch(
+  modelConfig,
+  (config) => {
+    if (config) {
+      apiKey.value = config.api_key;
+      selectedProvider.value = config.provider;
+      selectedModel.value = config.model;
+      customModel.value = config.model;
+      customBaseUrl.value = config.base_url;
+    }
+  },
+  { immediate: true }
+);
+
+const currentProvider = computed(() =>
+  PROVIDERS.find(p => p.value === selectedProvider.value)
+);
+
+const isCustom = computed(() => selectedProvider.value === "custom");
+
+const hasChanged = computed(() => {
+  const saved = modelConfig.value;
+  const currentModel = isCustom.value ? customModel.value : selectedModel.value;
+  if (!saved) {
+    return !!(apiKey.value || currentModel || customBaseUrl.value);
+  }
+  return (
+    apiKey.value !== saved.api_key ||
+    selectedProvider.value !== saved.provider ||
+    currentModel !== saved.model ||
+    customBaseUrl.value !== saved.base_url
+  );
+});
+
+const handleSaveModelConfig = async () => {
+  const config: ModelConfig = {
+    api_key: apiKey.value,
+    provider: selectedProvider.value,
+    model: isCustom.value ? customModel.value : selectedModel.value,
+    base_url: isCustom.value ? customBaseUrl.value : "",
+  };
+  await saveModelConfig(config);
+};
 
 defineExpose({ show });
 </script>
 
 <template>
   <dialog ref="dialogRef" id="setting" class="modal transition-none!">
-    <div class="modal-box w-[50vw] max-w-3xl h-[90vh] p-0 flex flex-col">
+    <div class="modal-box w-[55vw] max-w-3xl h-[90vh] p-0 flex flex-col">
       <div
         class="flex items-center justify-between border-b border-base-300 px-6 py-4"
       >
@@ -26,7 +85,98 @@ defineExpose({ show });
           </button>
         </form>
       </div>
-      <div class="flex-1 overflow-y-auto p-6 py-4 space-y-6">
+      <div
+        class="flex-1 overflow-y-auto p-4 space-y-6 [scrollbar-gutter:stable_both-edges]"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-base font-medium">启用 AI 功能</p>
+            <p class="text-xs text-base-content/50">开启后可使用 AI 生成提示词</p>
+          </div>
+          <input
+            type="checkbox"
+            class="toggle toggle-primary"
+            :checked="isAiEnabled"
+            @change="toggleAi(($event.target as HTMLInputElement).checked)"
+          />
+        </div>
+        <fieldset
+          v-if="isAiEnabled"
+          class="fieldset p-4 border border-base-300 rounded-box"
+        >
+          <legend class="fieldset-legend text-base font-medium">
+            模型配置
+          </legend>
+          <p class="text-xs text-base-content/50 -mt-2">
+            如果想要使用与模型相关的功能，请填写此项。
+            <br />
+            填写的 API KEY只会保存在本地的配置文件中
+          </p>
+
+          <label class="fieldset-label text-base-content mt-2">API KEY</label>
+          <label class="input input-sm w-full flex items-center gap-2">
+            <input
+              type="text"
+              v-model="apiKey"
+              class="grow"
+              :class="{ 'password-mask': !showKey }"
+              placeholder="输入你的 API KEY"
+            />
+            <button
+              class="btn btn-ghost btn-xs h-5 w-5 p-0"
+              @click="showKey = !showKey"
+            >
+              <EyeOff v-if="showKey" class="w-3.5" />
+              <Eye v-else class="w-3.5" />
+            </button>
+          </label>
+          <label class="fieldset-label text-base-content mt-2">提供商</label>
+          <select v-model="selectedProvider" class="select select-sm w-full">
+            <option
+              v-for="prov in PROVIDERS"
+              :key="prov.value"
+              :value="prov.value"
+            >
+              {{ prov.label }}
+            </option>
+          </select>
+          <label class="fieldset-label text-base-content mt-2">模型</label>
+          <select
+            v-if="!isCustom"
+            v-model="selectedModel"
+            class="select select-sm w-full"
+          >
+            <option disabled value="">请选择模型</option>
+            <option
+              v-for="model in currentProvider?.models ?? []"
+              :key="model"
+              :value="model"
+            >
+              {{ model }}
+            </option>
+          </select>
+          <input
+            v-else
+            v-model="customModel"
+            class="input input-sm w-full"
+            placeholder="输入模型名称"
+          />
+          <div v-show="isCustom" class="mt-2">
+            <label class="fieldset-label text-base-content mb-1">请求 URL</label>
+            <input
+              v-model="customBaseUrl"
+              class="input input-sm w-full"
+              placeholder="https://api.example.com/v1"
+            />
+          </div>
+          <button
+            v-if="hasChanged"
+            class="btn btn-primary btn-sm mt-4"
+            @click="handleSaveModelConfig"
+          >
+            保存
+          </button>
+        </fieldset>
         <div>
           <p class="text-sm font-medium">配置文件位置</p>
           <p class="text-sm text-base-content/50 mt-2 mb-2">
@@ -56,3 +206,9 @@ defineExpose({ show });
     </div>
   </dialog>
 </template>
+
+<style scoped>
+.password-mask {
+  -webkit-text-security: disc;
+}
+</style>

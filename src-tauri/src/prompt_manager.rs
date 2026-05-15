@@ -8,6 +8,14 @@ use short_uuid::ShortUuid;
 use tauri::path::BaseDirectory;
 
 #[derive(Serialize, Deserialize, Clone)]
+pub struct ModelConfig {
+    pub api_key: String,
+    pub provider: String,
+    pub model: String,
+    pub base_url: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Prompt {
     pub id: String,
     pub title: String,
@@ -28,9 +36,9 @@ impl Default for Prompt {
     fn default() -> Self {
         Self {
             id: ShortUuid::generate().to_string(),
-            title: String::from("新的提示词"),
+            title: String::new(),
             tip: String::new(),
-            content: String::from("你是一个 AI 助手..."),
+            content: String::new(),
             tags: Vec::new(),
         }
     }
@@ -51,8 +59,9 @@ impl Prompt {
 #[derive(Serialize, Deserialize)]
 pub struct PromptManager {
     is_in_dark_mode: bool,
+    is_ai_enabled: bool,
+    model_config: Option<ModelConfig>,
     #[serde(skip)]
-    // 能在序列化和反序列化时跳过下面这条
     data_file_path: PathBuf,
     pub prompts: Vec<Prompt>,
     tags: Vec<String>,
@@ -62,6 +71,8 @@ impl Default for PromptManager {
     fn default() -> Self {
         Self {
             is_in_dark_mode: false,
+            is_ai_enabled: false,
+            model_config: None,
             data_file_path: PathBuf::new(),
             prompts: Vec::new(),
             tags: Vec::new(),
@@ -170,6 +181,24 @@ impl PromptManager {
 
     pub fn get_dark_mode(&self) -> bool {
         self.is_in_dark_mode
+    }
+
+    pub fn get_ai_enabled(&self) -> bool {
+        self.is_ai_enabled
+    }
+
+    pub fn set_ai_enabled(&mut self, enabled: bool) -> Result<(), String> {
+        self.is_ai_enabled = enabled;
+        self.save()
+    }
+
+    pub fn get_model_config(&self) -> Option<ModelConfig> {
+        self.model_config.clone()
+    }
+
+    pub fn set_model_config(&mut self, config: ModelConfig) -> Result<(), String> {
+        self.model_config = Some(config);
+        self.save()
     }
 
     pub fn get_data_file_path(&self) -> &PathBuf {
