@@ -25,3 +25,4 @@ serde_json = "1"
 tauri-plugin-clipboard-manager = "2"
 short-uuid = "0.1.2"
 dirs-next = "2.0.0"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "time"] }

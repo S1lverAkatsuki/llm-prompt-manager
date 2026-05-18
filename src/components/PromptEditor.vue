@@ -7,6 +7,7 @@ import { useAiConfig } from "@/composables/useAiConfig";
 import { Save, Trash, X } from "lucide-vue-next";
 import { useSuggestTag } from "@/composables/useSuggestTag";
 import { MAX_TAG_LENGTH, MAX_TITLE_LENGTH } from "@/constants.ts";
+import { invoke } from "@tauri-apps/api/core";
 
 const prompts = inject(promptsKey)!;
 const { tags, refresh } = inject(tagsKey)!;
@@ -39,7 +40,7 @@ const {
 
 const open = async (item?: Prompt) => {
   if (!item) {
-    loadAiConfig();
+    await loadAiConfig();
     editorCreateStep.value = isAiEnabled.value
       ? EditorCreateStep.LlmCreate
       : EditorCreateStep.HandWriting;
@@ -114,19 +115,46 @@ const dialogSubTitle = computed<string>(() => {
   }
 });
 
-const switchToHandWriting = async () => {
-  editorCreateStep.value = EditorCreateStep.HandWriting;
-  await nextTick();
-  handleInputExpanded();
-};
-
 const userPrompt = ref<string>("");
 
+const isGenerating = ref<boolean>(false);
+
+const cancelGeneratingTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
+
+const handleCancelGenerating = async () => {
+  if (!isGenerating.value) {
+    editorCreateStep.value = EditorCreateStep.HandWriting;
+    nextTick().then(() => handleInputExpanded());
+    return;
+  }
+  if (cancelGeneratingTimeout.value) {
+    clearTimeout(cancelGeneratingTimeout.value);
+    cancelGeneratingTimeout.value = null;
+    isGenerating.value = false;
+    editorCreateStep.value = EditorCreateStep.HandWriting;
+    await nextTick();
+    handleInputExpanded();
+  } else {
+    cancelGeneratingTimeout.value = setTimeout(() => {
+      cancelGeneratingTimeout.value = null;
+    }, 2000);
+  }
+};
+
 const handleGeneratePrompt = async () => {
-  console.log(userPrompt.value);
-  editorCreateStep.value = EditorCreateStep.HandWriting;
-  await nextTick();
-  handleInputExpanded();
+  isGenerating.value = true;
+  try {
+    console.log(userPrompt.value);
+    const generateResult = await invoke<Prompt>("ai_generate", { userPrompt: userPrompt.value });
+    editingPrompt.value = generateResult!;
+    editorCreateStep.value = EditorCreateStep.HandWriting;
+    await nextTick();
+    handleInputExpanded();
+  } catch (e) {
+    console.error("生成错误：", e);
+  } finally {
+    isGenerating.value = false;
+  }
 };
 
 const dialogHeightClass = "h-[90vh]";
@@ -173,29 +201,27 @@ const dialogHeightClass = "h-[90vh]";
         <div
           class="flex-1 overflow-y-auto p-5 flex flex-col gap-3 [scrollbar-gutter:stable_both-edges]"
         >
-          <div class="text-sm text-base-content/70">
-            填写以一些描述性文本
-          </div>
+          <div class="text-sm text-base-content/70">填写以一些描述性文本</div>
           <textarea
             class="textarea w-full flex mx-auto resize-none flex-1"
             placeholder="说说希望得到什么样的提示词"
             v-model="userPrompt"
+            :disabled="isGenerating"
           ></textarea>
-          <p class="text-xs text-base-content/40">
-            可前往设置中修改模型配置
-          </p>
+          <p class="text-xs text-base-content/40">可前往设置中修改模型配置</p>
         </div>
         <div
           class="bg-base-200/50 border-t border-base-300 p-6 flex justify-end gap-2"
         >
-          <button
-            class="btn btn-ghost text-base-content/50"
-            @click="switchToHandWriting"
-          >
-            手动编写
+          <button class="btn" @click="handleCancelGenerating">
+            {{ cancelGeneratingTimeout ? "确认放弃所有更改？" : "手动编写" }}
           </button>
-          <button class="btn btn-primary" @click="handleGeneratePrompt">
-            生成
+          <button
+            class="btn btn-primary"
+            :disabled="isGenerating"
+            @click="handleGeneratePrompt"
+          >
+            {{ isGenerating ? "生成中..." : "生成" }}
           </button>
         </div>
       </template>

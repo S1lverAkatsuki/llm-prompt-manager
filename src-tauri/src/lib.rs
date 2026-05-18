@@ -105,7 +105,9 @@ fn set_ai_enabled(
 }
 
 #[tauri::command]
-fn get_model_config(state: State<'_, Arc<Mutex<PromptManager>>>) -> Result<Option<ModelConfig>, String> {
+fn get_model_config(
+    state: State<'_, Arc<Mutex<PromptManager>>>,
+) -> Result<Option<ModelConfig>, String> {
     let manager = state.lock().map_err(|e| e.to_string())?;
     Ok(manager.get_model_config())
 }
@@ -117,6 +119,26 @@ fn set_model_config(
 ) -> Result<(), String> {
     let mut manager = state.lock().map_err(|e| e.to_string())?;
     manager.set_model_config(config)
+}
+
+#[tauri::command]
+async fn ai_generate(
+    state: State<'_, Arc<Mutex<PromptManager>>>,
+    user_prompt: String,
+) -> Result<Prompt, String> {
+    let _config = {
+        let manager = state.lock().map_err(|e| e.to_string())?;
+        manager.get_model_config() // 数据拷出来，同步锁不能跨 await
+    };
+    
+    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    Ok(Prompt {
+        id: "aaa".to_string(),
+        title: "bbb".to_string(),
+        tip: "ccc".to_string(),
+        content: user_prompt,
+        tags: vec!["ddd".to_string(), "eee".to_string()],
+    })
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -152,6 +174,7 @@ pub fn run() {
             set_ai_enabled,
             get_model_config,
             set_model_config,
+            ai_generate
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

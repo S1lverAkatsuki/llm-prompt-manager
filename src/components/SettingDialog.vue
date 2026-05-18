@@ -19,7 +19,7 @@ const show = () => {
 };
 
 const apiKey = ref("");
-const selectedProvider = ref("openai");
+const selectedProvider = ref("");
 const selectedModel = ref("");
 const customModel = ref("");
 const customBaseUrl = ref("");
@@ -45,12 +45,31 @@ const currentProvider = computed(() =>
 
 const isCustom = computed(() => selectedProvider.value === "custom");
 
+const isApiKeyEmpty = computed(() => !apiKey.value);
+const isProviderEmpty = computed(() => !selectedProvider.value);
+const isModelEmpty = computed(() =>
+  !(isCustom.value ? customModel.value : selectedModel.value)
+);
+const isBaseUrlEmpty = computed(() => isCustom.value && !customBaseUrl.value);
+
+watch(selectedProvider, (_, oldVal) => {
+  if (!oldVal) return;
+  selectedModel.value = "";
+  customModel.value = "";
+  customBaseUrl.value = "";
+});
+
 const hasChanged = computed(() => {
   const saved = modelConfig.value;
   const currentModel = isCustom.value ? customModel.value : selectedModel.value;
-  if (!saved) {
-    return !!(apiKey.value || currentModel || customBaseUrl.value);
-  }
+
+  if (!apiKey.value) return false;
+  if (!selectedProvider.value) return false;
+  if (!currentModel) return false;
+  if (isCustom.value && !customBaseUrl.value) return false;
+
+  if (!saved) return true;
+
   return (
     apiKey.value !== saved.api_key ||
     selectedProvider.value !== saved.provider ||
@@ -114,7 +133,10 @@ defineExpose({ show });
           </p>
 
           <label class="fieldset-label text-base-content mt-2">API KEY</label>
-          <label class="input input-sm w-full flex items-center gap-2">
+          <label
+            class="input input-sm w-full flex items-center gap-2"
+            :class="{ 'input-error': isApiKeyEmpty }"
+          >
             <input
               type="text"
               v-model="apiKey"
@@ -131,7 +153,12 @@ defineExpose({ show });
             </button>
           </label>
           <label class="fieldset-label text-base-content mt-2">提供商</label>
-          <select v-model="selectedProvider" class="select select-sm w-full">
+          <select
+            v-model="selectedProvider"
+            class="select select-sm w-full"
+            :class="{ 'select-error': isProviderEmpty }"
+          >
+            <option disabled value="">请选择提供商</option>
             <option
               v-for="prov in PROVIDERS"
               :key="prov.value"
@@ -145,6 +172,7 @@ defineExpose({ show });
             v-if="!isCustom"
             v-model="selectedModel"
             class="select select-sm w-full"
+            :class="{ 'select-error': isModelEmpty }"
           >
             <option disabled value="">请选择模型</option>
             <option
@@ -159,6 +187,7 @@ defineExpose({ show });
             v-else
             v-model="customModel"
             class="input input-sm w-full"
+            :class="{ 'input-error': isModelEmpty }"
             placeholder="输入模型名称"
           />
           <div v-show="isCustom" class="mt-2">
@@ -166,6 +195,7 @@ defineExpose({ show });
             <input
               v-model="customBaseUrl"
               class="input input-sm w-full"
+              :class="{ 'input-error': isBaseUrlEmpty }"
               placeholder="https://api.example.com/v1"
             />
           </div>
