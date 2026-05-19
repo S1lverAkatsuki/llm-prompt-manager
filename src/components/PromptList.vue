@@ -36,11 +36,14 @@ const justDragged = ref(false);
 provide("justDragged", justDragged);
 provide("draggingItemId", draggingItemId);
 
-const handleDragStart = (evt: { oldIndex: number }) => {
+const isIndex = (value: number | undefined): value is number =>
+  value !== undefined && value >= 0;
+
+const handleDragStart = (evt: { oldIndex?: number }) => {
   isDragging.value = true;
 
-  if (!prompts.value) return;
-  const draggedItem = prompts.value[evt.oldIndex];
+  if (!filtratedPrompts.value || !isIndex(evt.oldIndex)) return;
+  const draggedItem = filtratedPrompts.value[evt.oldIndex];
   if (!draggedItem) return;
 
   draggingItemId.value = draggedItem.id;
@@ -51,9 +54,35 @@ const handleDragStart = (evt: { oldIndex: number }) => {
   }
 };
 
-const handleDragEnd = () => {
+const handleDragEnd = (evt: { oldIndex?: number; newIndex?: number }) => {
   isDragging.value = false;
   draggingItemId.value = null;
+
+  if (
+    prompts.value &&
+    filtratedPrompts.value &&
+    isIndex(evt.oldIndex) &&
+    isIndex(evt.newIndex) &&
+    evt.oldIndex !== evt.newIndex
+  ) {
+    if (hasFiltrated.value) {
+      const visibleIds = new Set(filtratedPrompts.value.map(prompt => prompt.id));
+      const visibleIndices = prompts.value.reduce<number[]>((indices, prompt, index) => {
+        if (visibleIds.has(prompt.id)) {
+          indices.push(index);
+        }
+        return indices;
+      }, []);
+
+      const reorderedPrompts = [...prompts.value];
+      filtratedPrompts.value.forEach((prompt, index) => {
+        reorderedPrompts[visibleIndices[index]] = prompt;
+      });
+      prompts.value = reorderedPrompts;
+    } else {
+      prompts.value = [...filtratedPrompts.value];
+    }
+  }
 
   if (collapsedIdForDrag.value) {
     emit("toggleExpand", collapsedIdForDrag.value);

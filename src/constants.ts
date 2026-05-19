@@ -10,26 +10,10 @@ export interface ProviderDef {
 
 export const PROVIDERS: ProviderDef[] = [
   {
-    value: "openai",
-    label: "OpenAI",
-    models: ["gpt-4o", "gpt-4o-mini", "gpt-4.1", "o4-mini"],
-    defaultUrl: "",
-  },
-  {
-    value: "anthropic",
-    label: "Anthropic",
-    models: [
-      "claude-sonnet-4-20250514",
-      "claude-opus-4-20250514",
-      "claude-3-5-haiku-20241022",
-    ],
-    defaultUrl: "",
-  },
-  {
-    value: "google",
-    label: "Google AI",
-    models: ["gemini-2.5-flash", "gemini-2.5-pro"],
-    defaultUrl: "",
+    value: "deepseek",
+    label: "DeepSeek",
+    models: ["deepseek-v4-pro", "deepseek-v4-flash"],
+    defaultUrl: "https://api.deepseek.com/chat/completions",
   },
   {
     value: "custom",

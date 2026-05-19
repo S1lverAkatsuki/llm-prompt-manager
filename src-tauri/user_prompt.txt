@@ -1,0 +1,2 @@
+用户需求：{user_input}
+已有标签列表：{existing_tags}

@@ -1,8 +1,11 @@
 mod prompt_manager;
-use std::sync::{Arc, Mutex};
-
 use prompt_manager::{ModelConfig, Prompt, PromptData, PromptManager};
+use short_uuid::ShortUuid;
+use std::sync::{Arc, Mutex};
 use tauri::{Manager, State};
+
+const SYSTEM_PROMPT: &'static str = include_str!("../system_prompt.txt");
+const USER_PROMPT: &'static str = include_str!("../user_prompt.txt");
 
 #[tauri::command]
 fn get_version() -> String {
@@ -122,23 +125,72 @@ fn set_model_config(
 }
 
 #[tauri::command]
+fn clear_ai_config(state: State<'_, Arc<Mutex<PromptManager>>>) -> Result<(), String> {
+    let mut manager = state.lock().map_err(|e| e.to_string())?;
+    manager.clear_ai_config()
+}
+
+#[tauri::command]
 async fn ai_generate(
     state: State<'_, Arc<Mutex<PromptManager>>>,
     user_prompt: String,
 ) -> Result<Prompt, String> {
-    let _config = {
+    use serde_json::{json, Value};
+
+    let (client, model_config, tags) = {
         let manager = state.lock().map_err(|e| e.to_string())?;
-        manager.get_model_config() // 数据拷出来，同步锁不能跨 await
+        // 数据拷出来，同步锁不能跨 await
+        (
+            manager.reqwest_client.clone().unwrap(),
+            manager.get_model_config().unwrap(),
+            manager.get_all_tags(),
+        )
     };
-    
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-    Ok(Prompt {
-        id: "aaa".to_string(),
-        title: "bbb".to_string(),
-        tip: "ccc".to_string(),
-        content: user_prompt,
-        tags: vec!["ddd".to_string(), "eee".to_string()],
-    })
+
+    if user_prompt.is_empty() {
+        return Err("未提供任何输入".to_string());
+    }
+
+    let request_body = json!({
+      "model": model_config.model,
+      "messages": [
+        {
+          "role": "system",
+          "content": SYSTEM_PROMPT
+        },
+        {
+          "role": "user",
+          "content": USER_PROMPT.replace("{user_input}", &user_prompt).replace("{existing_tags}", &tags.join(", "))
+        }
+      ]
+    });
+
+    let response = client
+        .post(model_config.base_url)
+        .header(
+            reqwest::header::AUTHORIZATION,
+            format!("Bearer {}", model_config.api_key),
+        )
+        .json(&request_body)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let response_json: Value = response.json().await.map_err(|e| e.to_string())?;
+
+    let res = response_json["choices"][0]["message"]["content"]
+        .as_str()
+        .map(|s| s.to_string())
+        .unwrap();
+    let mut res_json: Value = serde_json::from_str(&res).map_err(|e| e.to_string())?;
+    if let Some(obj) = res_json.as_object_mut() {
+        obj.insert(
+            "id".to_string(),
+            serde_json::Value::String(ShortUuid::generate().to_string()),
+        );
+    }
+    let res_prompt: Prompt = serde_json::from_value(res_json).map_err(|e| e.to_string())?;
+
+    Ok(res_prompt)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -174,6 +226,7 @@ pub fn run() {
             set_ai_enabled,
             get_model_config,
             set_model_config,
+            clear_ai_config,
             ai_generate
         ])
         .run(tauri::generate_context!())

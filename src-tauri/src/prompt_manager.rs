@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs::{create_dir_all, read_to_string, write};
 use std::path::PathBuf;
 
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use short_uuid::ShortUuid;
 
@@ -15,7 +16,7 @@ pub struct ModelConfig {
     pub base_url: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Prompt {
     pub id: String,
     pub title: String,
@@ -24,7 +25,7 @@ pub struct Prompt {
     pub tags: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, )]
 pub struct PromptData {
     pub title: String,
     pub tip: String,
@@ -65,6 +66,8 @@ pub struct PromptManager {
     data_file_path: PathBuf,
     pub prompts: Vec<Prompt>,
     tags: Vec<String>,
+    #[serde(skip)]
+    pub reqwest_client: Option<Client>,
 }
 
 impl Default for PromptManager {
@@ -76,6 +79,7 @@ impl Default for PromptManager {
             data_file_path: PathBuf::new(),
             prompts: Vec::new(),
             tags: Vec::new(),
+            reqwest_client: None,
         }
     }
 }
@@ -97,7 +101,7 @@ impl PromptManager {
             }
         }
 
-        let config = if data_file_path.exists() {
+        let mut app_config = if data_file_path.exists() {
             let content = read_to_string(&data_file_path).unwrap_or_default();
 
             if content.trim().is_empty() {
@@ -109,9 +113,13 @@ impl PromptManager {
             PromptManager::default()
         };
 
+        if app_config.is_ai_enabled {
+            app_config.reqwest_client = Some(Client::new())
+        }
+
         Self {
             data_file_path,
-            ..config
+            ..app_config
         }
     }
 
@@ -161,10 +169,7 @@ impl PromptManager {
         }
 
         let len = map.len();
-        let reordered: Vec<Prompt> = ordered_ids
-            .iter()
-            .filter_map(|id| map.remove(id))
-            .collect();
+        let reordered: Vec<Prompt> = ordered_ids.iter().filter_map(|id| map.remove(id)).collect();
 
         if reordered.len() != len {
             return Err("ordered_ids 与已有项不匹配".to_string());
@@ -189,6 +194,7 @@ impl PromptManager {
 
     pub fn set_ai_enabled(&mut self, enabled: bool) -> Result<(), String> {
         self.is_ai_enabled = enabled;
+        self.reqwest_client = if enabled { Some(Client::new()) } else { None };
         self.save()
     }
 
@@ -198,6 +204,14 @@ impl PromptManager {
 
     pub fn set_model_config(&mut self, config: ModelConfig) -> Result<(), String> {
         self.model_config = Some(config);
+        self.reqwest_client = Some(Client::new());
+        self.save()
+    }
+
+    pub fn clear_ai_config(&mut self) -> Result<(), String> {
+        self.is_ai_enabled = false;
+        self.model_config = None;
+        self.reqwest_client = None;
         self.save()
     }
 

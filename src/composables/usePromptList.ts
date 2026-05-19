@@ -49,6 +49,7 @@ export const usePromptList = () => {
     reorderTimeout.value = setTimeout(async () => {
       if (!items.value) return;
       const orderedIds = items.value.map(i => i.id);
+      console.log(items.value);
       try {
         await invoke("reorder", { orderedIds });
       } catch (e) {

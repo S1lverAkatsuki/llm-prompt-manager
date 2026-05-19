@@ -36,5 +36,22 @@ export const useAiConfig = () => {
     }
   };
 
-  return { isAiEnabled, modelConfig, loadAiConfig, toggleAi, saveModelConfig };
+  const clearAiConfig = async () => {
+    try {
+      await invoke("clear_ai_config");
+      isAiEnabled.value = false;
+      modelConfig.value = null;
+    } catch (e) {
+      console.error("清除 AI 配置失败:", e);
+    }
+  };
+
+  return {
+    isAiEnabled,
+    modelConfig,
+    loadAiConfig,
+    toggleAi,
+    saveModelConfig,
+    clearAiConfig,
+  };
 };

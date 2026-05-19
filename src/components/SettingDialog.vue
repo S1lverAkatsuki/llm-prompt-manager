@@ -8,8 +8,14 @@ import type { ModelConfig } from "@/types";
 import { X, Eye, EyeOff } from "lucide-vue-next";
 
 const { dataPath, version } = useSetting();
-const { isAiEnabled, modelConfig, loadAiConfig, toggleAi, saveModelConfig } =
-  useAiConfig();
+const {
+  isAiEnabled,
+  modelConfig,
+  loadAiConfig,
+  toggleAi,
+  saveModelConfig,
+  clearAiConfig,
+} = useAiConfig();
 
 const dialogRef = ref<HTMLDialogElement | null>(null);
 
@@ -31,7 +37,13 @@ watch(
     if (config) {
       apiKey.value = config.api_key;
       selectedProvider.value = config.provider;
+      if (!PROVIDERS.some(p => p.value === selectedProvider.value)) {
+        selectedProvider.value = "";
+      }
       selectedModel.value = config.model;
+      if (selectedModel.value && !currentProvider.value?.models.includes(selectedModel.value)) {
+        selectedModel.value = "";
+      }
       customModel.value = config.model;
       customBaseUrl.value = config.base_url;
     }
@@ -59,13 +71,20 @@ watch(selectedProvider, (_, oldVal) => {
   customBaseUrl.value = "";
 });
 
+const currentModel = computed(() =>
+  isCustom.value ? customModel.value : selectedModel.value
+);
+
+const currentUrl = computed(() =>
+  isCustom.value ? customBaseUrl.value : (currentProvider.value?.defaultUrl ?? "")
+);
+
 const hasChanged = computed(() => {
   const saved = modelConfig.value;
-  const currentModel = isCustom.value ? customModel.value : selectedModel.value;
 
   if (!apiKey.value) return false;
   if (!selectedProvider.value) return false;
-  if (!currentModel) return false;
+  if (!currentModel.value) return false;
   if (isCustom.value && !customBaseUrl.value) return false;
 
   if (!saved) return true;
@@ -73,8 +92,8 @@ const hasChanged = computed(() => {
   return (
     apiKey.value !== saved.api_key ||
     selectedProvider.value !== saved.provider ||
-    currentModel !== saved.model ||
-    customBaseUrl.value !== saved.base_url
+    currentModel.value !== saved.model ||
+    currentUrl.value !== saved.base_url
   );
 });
 
@@ -82,10 +101,20 @@ const handleSaveModelConfig = async () => {
   const config: ModelConfig = {
     api_key: apiKey.value,
     provider: selectedProvider.value,
-    model: isCustom.value ? customModel.value : selectedModel.value,
-    base_url: isCustom.value ? customBaseUrl.value : "",
+    model: currentModel.value,
+    base_url: currentUrl.value,
   };
   await saveModelConfig(config);
+};
+
+const handleClearAiConfig = async () => {
+  await clearAiConfig();
+  apiKey.value = "";
+  selectedProvider.value = "";
+  selectedModel.value = "";
+  customModel.value = "";
+  customBaseUrl.value = "";
+  showKey.value = false;
 };
 
 defineExpose({ show });
@@ -127,9 +156,15 @@ defineExpose({ show });
             模型配置
           </legend>
           <p class="text-xs text-base-content/50 -mt-2">
-            如果想要使用与模型相关的功能，请填写此项。
-            <br />
             填写的 API KEY只会保存在本地的配置文件中
+            <br />
+            <a
+              href="#"
+              class="link link-error"
+              @click.prevent="handleClearAiConfig"
+            >
+              清除所有 AI 配置信息
+            </a>
           </p>
 
           <label class="fieldset-label text-base-content mt-2">API KEY</label>

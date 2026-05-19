@@ -39,6 +39,7 @@ const {
 } = useEditor(prompts, editorContextInputRef, editAreaRef);
 
 const open = async (item?: Prompt) => {
+  isUserPromptEmpty.value = false;
   if (!item) {
     await loadAiConfig();
     editorCreateStep.value = isAiEnabled.value
@@ -68,6 +69,8 @@ const onDelete = async () => {
 };
 
 const onDialogClose = () => {
+  isUserPromptEmpty.value = false;
+  userPrompt.value = "";
   resetEditor();
 };
 
@@ -116,6 +119,7 @@ const dialogSubTitle = computed<string>(() => {
 });
 
 const userPrompt = ref<string>("");
+const isUserPromptEmpty = ref<boolean>(false);
 
 const isGenerating = ref<boolean>(false);
 
@@ -142,6 +146,12 @@ const handleCancelGenerating = async () => {
 };
 
 const handleGeneratePrompt = async () => {
+  if (!userPrompt.value.trim()) {
+    isUserPromptEmpty.value = true;
+    return;
+  }
+
+  isUserPromptEmpty.value = false;
   isGenerating.value = true;
   try {
     console.log(userPrompt.value);
@@ -158,6 +168,12 @@ const handleGeneratePrompt = async () => {
 };
 
 const dialogHeightClass = "h-[90vh]";
+
+watch(userPrompt, (value) => {
+  if (value.trim()) {
+    isUserPromptEmpty.value = false;
+  }
+});
 </script>
 
 <template>
@@ -204,10 +220,14 @@ const dialogHeightClass = "h-[90vh]";
           <div class="text-sm text-base-content/70">填写以一些描述性文本</div>
           <textarea
             class="textarea w-full flex mx-auto resize-none flex-1"
+            :class="{ 'textarea-error': isUserPromptEmpty }"
             placeholder="说说希望得到什么样的提示词"
             v-model="userPrompt"
             :disabled="isGenerating"
           ></textarea>
+          <p v-if="isUserPromptEmpty" class="text-xs text-error">
+            请输入用于生成提示词的需求描述
+          </p>
           <p class="text-xs text-base-content/40">可前往设置中修改模型配置</p>
         </div>
         <div
