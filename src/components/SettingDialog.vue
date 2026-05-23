@@ -3,6 +3,7 @@ import { ref, computed, watch } from "vue";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useSetting } from "@/composables/useSetting";
 import { useAiConfig } from "@/composables/useAiConfig";
+import { useErrorLog } from "@/composables/useErrorLog";
 import { PROVIDERS } from "@/constants";
 import type { ModelConfig } from "@/types";
 import { X, Eye, EyeOff } from "lucide-vue-next";
@@ -16,6 +17,7 @@ const {
   saveModelConfig,
   clearAiConfig,
 } = useAiConfig();
+const { errorLogs, clearErrorLogs } = useErrorLog();
 
 const dialogRef = ref<HTMLDialogElement | null>(null);
 
@@ -33,7 +35,7 @@ const showKey = ref(false);
 
 watch(
   modelConfig,
-  (config) => {
+  config => {
     if (config) {
       apiKey.value = config.api_key;
       selectedProvider.value = config.provider;
@@ -41,7 +43,10 @@ watch(
         selectedProvider.value = "";
       }
       selectedModel.value = config.model;
-      if (selectedModel.value && !currentProvider.value?.models.includes(selectedModel.value)) {
+      if (
+        selectedModel.value &&
+        !currentProvider.value?.models.includes(selectedModel.value)
+      ) {
         selectedModel.value = "";
       }
       customModel.value = config.model;
@@ -59,8 +64,8 @@ const isCustom = computed(() => selectedProvider.value === "custom");
 
 const isApiKeyEmpty = computed(() => !apiKey.value);
 const isProviderEmpty = computed(() => !selectedProvider.value);
-const isModelEmpty = computed(() =>
-  !(isCustom.value ? customModel.value : selectedModel.value)
+const isModelEmpty = computed(
+  () => !(isCustom.value ? customModel.value : selectedModel.value)
 );
 const isBaseUrlEmpty = computed(() => isCustom.value && !customBaseUrl.value);
 
@@ -76,8 +81,18 @@ const currentModel = computed(() =>
 );
 
 const currentUrl = computed(() =>
-  isCustom.value ? customBaseUrl.value : (currentProvider.value?.defaultUrl ?? "")
+  isCustom.value
+    ? customBaseUrl.value
+    : (currentProvider.value?.defaultUrl ?? "")
 );
+
+const canEnableAi = computed(() => {
+  if (!apiKey.value) return false;
+  if (!selectedProvider.value) return false;
+  if (!currentModel.value) return false;
+  if (isCustom.value && !customBaseUrl.value) return false;
+  return true;
+});
 
 const hasChanged = computed(() => {
   const saved = modelConfig.value;
@@ -105,6 +120,23 @@ const handleSaveModelConfig = async () => {
     base_url: currentUrl.value,
   };
   await saveModelConfig(config);
+};
+
+const handleAiToggle = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const checked = target.checked;
+
+  if (!checked) {
+    await toggleAi(false);
+    return;
+  }
+
+  if (!canEnableAi.value) {
+    target.checked = false;
+    return;
+  }
+
+  await toggleAi(true);
 };
 
 const handleClearAiConfig = async () => {
@@ -139,13 +171,15 @@ defineExpose({ show });
         <div class="flex items-center justify-between">
           <div>
             <p class="text-base font-medium">启用 AI 功能</p>
-            <p class="text-xs text-base-content/50">开启后可使用 AI 生成提示词</p>
+            <p class="text-xs text-base-content/50">
+              开启后可使用 AI 生成提示词
+            </p>
           </div>
           <input
             type="checkbox"
             class="toggle toggle-primary"
             :checked="isAiEnabled"
-            @change="toggleAi(($event.target as HTMLInputElement).checked)"
+            @change="handleAiToggle"
           />
         </div>
         <fieldset
@@ -156,7 +190,7 @@ defineExpose({ show });
             模型配置
           </legend>
           <p class="text-xs text-base-content/50 -mt-2">
-            填写的 API KEY只会保存在本地的配置文件中
+            填写的 API KEY 只会保存在本地的配置文件中
             <br />
             <a
               href="#"
@@ -173,8 +207,8 @@ defineExpose({ show });
             :class="{ 'input-error': isApiKeyEmpty }"
           >
             <input
-              type="text"
               v-model="apiKey"
+              type="text"
               class="grow"
               :class="{ 'password-mask': !showKey }"
               placeholder="输入你的 API KEY"
@@ -226,7 +260,9 @@ defineExpose({ show });
             placeholder="输入模型名称"
           />
           <div v-show="isCustom" class="mt-2">
-            <label class="fieldset-label text-base-content mb-1">请求 URL</label>
+            <label class="fieldset-label text-base-content mb-1"
+              >请求 URL</label
+            >
             <input
               v-model="customBaseUrl"
               class="input input-sm w-full"
@@ -255,6 +291,20 @@ defineExpose({ show });
           >
         </div>
         <div>
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-medium">错误日志</p>
+            <button class="btn btn-ghost btn-xs" @click="clearErrorLogs">
+              清空
+            </button>
+          </div>
+          <textarea
+            class="textarea textarea-sm w-full mt-2 h-40 resize-none overflow-y-auto font-mono"
+            :value="errorLogs.join('\n\n')"
+            readonly
+            placeholder="当前没有错误日志"
+          />
+        </div>
+        <div>
           <p class="text-sm font-medium">关于</p>
           <div class="card w-full bg-base-200/50 card-sm shadow mt-2">
             <div class="card-body">
@@ -273,6 +323,10 @@ defineExpose({ show });
 </template>
 
 <style scoped>
+.modal {
+  z-index: 998 !important;
+}
+
 .password-mask {
   -webkit-text-security: disc;
 }

@@ -141,8 +141,13 @@ async fn ai_generate(
         let manager = state.lock().map_err(|e| e.to_string())?;
         // 数据拷出来，同步锁不能跨 await
         (
-            manager.reqwest_client.clone().unwrap(),
-            manager.get_model_config().unwrap(),
+            manager
+                .reqwest_client
+                .clone()
+                .ok_or_else(|| "AI 客户端未初始化，请先启用 AI 功能".to_string())?,
+            manager
+                .get_model_config()
+                .ok_or_else(|| "AI 配置不存在，请先保存 AI 配置".to_string())?,
             manager.get_all_tags(),
         )
     };
@@ -166,7 +171,7 @@ async fn ai_generate(
     });
 
     let response = client
-        .post(model_config.base_url)
+        .post(model_config.base_url.clone())
         .header(
             reqwest::header::AUTHORIZATION,
             format!("Bearer {}", model_config.api_key),
@@ -177,10 +182,15 @@ async fn ai_generate(
         .map_err(|e| e.to_string())?;
     let response_json: Value = response.json().await.map_err(|e| e.to_string())?;
 
-    let res = response_json["choices"][0]["message"]["content"]
-        .as_str()
+    let res = response_json
+        .get("choices")
+        .and_then(|choices| choices.as_array())
+        .and_then(|choices| choices.first())
+        .and_then(|choice| choice.get("message"))
+        .and_then(|message| message.get("content"))
+        .and_then(|content| content.as_str())
         .map(|s| s.to_string())
-        .unwrap();
+        .ok_or_else(|| "AI 响应格式不正确，未返回可解析内容".to_string())?;
     let mut res_json: Value = serde_json::from_str(&res).map_err(|e| e.to_string())?;
     if let Some(obj) = res_json.as_object_mut() {
         obj.insert(

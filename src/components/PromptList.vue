@@ -66,13 +66,18 @@ const handleDragEnd = (evt: { oldIndex?: number; newIndex?: number }) => {
     evt.oldIndex !== evt.newIndex
   ) {
     if (hasFiltrated.value) {
-      const visibleIds = new Set(filtratedPrompts.value.map(prompt => prompt.id));
-      const visibleIndices = prompts.value.reduce<number[]>((indices, prompt, index) => {
-        if (visibleIds.has(prompt.id)) {
-          indices.push(index);
-        }
-        return indices;
-      }, []);
+      const visibleIds = new Set(
+        filtratedPrompts.value.map(prompt => prompt.id)
+      );
+      const visibleIndices = prompts.value.reduce<number[]>(
+        (indices, prompt, index) => {
+          if (visibleIds.has(prompt.id)) {
+            indices.push(index);
+          }
+          return indices;
+        },
+        []
+      );
 
       const reorderedPrompts = [...prompts.value];
       filtratedPrompts.value.forEach((prompt, index) => {

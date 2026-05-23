@@ -8,6 +8,7 @@ import AppHeader from "@/components/AppHeader.vue";
 import PromptList from "@/components/PromptList.vue";
 import PromptEditor from "@/components/PromptEditor.vue";
 import SettingDialog from "@/components/SettingDialog.vue";
+import AppToast from "@/components/AppToast.vue";
 import type { Prompt } from "@/types";
 
 const { isInDarkMode } = useTheme();
@@ -34,7 +35,7 @@ const handleEdit = (item: Prompt) => promptEditorRef.value?.open(item);
 
 const openSetting = () => settingDialogRef.value?.show();
 </script>
-z
+
 <template>
   <main class="h-screen w-screen flex flex-col items-center justify-center">
     <AppHeader
@@ -53,5 +54,6 @@ z
     />
     <PromptEditor ref="promptEditorRef" />
     <SettingDialog ref="settingDialogRef" />
+    <AppToast />
   </main>
 </template>

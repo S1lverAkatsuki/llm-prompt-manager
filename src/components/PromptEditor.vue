@@ -4,6 +4,8 @@ import type { Prompt } from "@/types";
 import { promptsKey, tagsKey } from "@/injection-keys";
 import { useEditor } from "@/composables/useEditor";
 import { useAiConfig } from "@/composables/useAiConfig";
+import { useErrorLog } from "@/composables/useErrorLog";
+import { useToast } from "@/composables/useToast";
 import { Save, Trash, X } from "lucide-vue-next";
 import { useSuggestTag } from "@/composables/useSuggestTag";
 import { MAX_TAG_LENGTH, MAX_TITLE_LENGTH } from "@/constants.ts";
@@ -12,6 +14,8 @@ import { invoke } from "@tauri-apps/api/core";
 const prompts = inject(promptsKey)!;
 const { tags, refresh } = inject(tagsKey)!;
 const { isAiEnabled, loadAiConfig } = useAiConfig();
+const { pushErrorLog } = useErrorLog();
+const { pushToast } = useToast();
 const dialogRef = ref<HTMLDialogElement | null>(null);
 
 const editorContextInputRef =
@@ -19,6 +23,7 @@ const editorContextInputRef =
 const editAreaRef = useTemplateRef<HTMLDivElement>("editArea");
 
 const {
+  editingId,
   tagInput,
   editingPrompt,
   isEditorInCreateMode,
@@ -154,26 +159,39 @@ const handleGeneratePrompt = async () => {
   isUserPromptEmpty.value = false;
   isGenerating.value = true;
   try {
-    console.log(userPrompt.value);
-    const generateResult = await invoke<Prompt>("ai_generate", { userPrompt: userPrompt.value });
+    const generateResult = await invoke<Prompt>("ai_generate", {
+      userPrompt: userPrompt.value,
+    });
     editingPrompt.value = generateResult!;
     editorCreateStep.value = EditorCreateStep.HandWriting;
     await nextTick();
     handleInputExpanded();
   } catch (e) {
-    console.error("生成错误：", e);
+    pushErrorLog("AI 生成失败", e);
+    pushToast("AI 生成失败，请检查配置或查看错误日志", "error");
   } finally {
     isGenerating.value = false;
   }
 };
 
-const dialogHeightClass = "h-[90vh]";
-
-watch(userPrompt, (value) => {
+watch(userPrompt, value => {
   if (value.trim()) {
     isUserPromptEmpty.value = false;
   }
 });
+
+const onCopyToNewItem = () => {
+  // 这里只需要改一下 ID 为空就能变成创建新条目的模式
+  // 后端会自己生成 ID 的
+  // 真是太巧合了
+  const currentEdithingId = editingId.value;
+  const currentEdithingMeta = editingPrompt.value;
+  editingId.value = null;
+  editingPrompt.value!.title = currentEdithingMeta?.title + " (副本)";
+  handleSave();
+  pushToast(`已复制到 ${editingPrompt.value!.title}`, "success");
+  editingId.value = currentEdithingId;
+};
 </script>
 
 <template>
@@ -184,10 +202,7 @@ watch(userPrompt, (value) => {
     class="modal"
     @close="onDialogClose"
   >
-    <div
-      class="modal-box w-[80vw] max-w-3xl p-0 flex flex-col"
-      :class="dialogHeightClass"
-    >
+    <div class="modal-box w-[80vw] max-w-3xl p-0 flex flex-col h-[90vh]">
       <div
         class="flex items-center justify-between border-b border-base-300 px-6 py-4"
       >
@@ -217,7 +232,7 @@ watch(userPrompt, (value) => {
         <div
           class="flex-1 overflow-y-auto p-5 flex flex-col gap-3 [scrollbar-gutter:stable_both-edges]"
         >
-          <div class="text-sm text-base-content/70">填写以一些描述性文本</div>
+          <div class="text-sm text-base-content/70">填写一些描述性文本</div>
           <textarea
             class="textarea w-full flex mx-auto resize-none flex-1"
             :class="{ 'textarea-error': isUserPromptEmpty }"
@@ -379,9 +394,12 @@ watch(userPrompt, (value) => {
             <Trash class="w-5" />
             {{ deletedTimeout ? "确认删除？" : "删除" }}
           </button>
-          <form method="dialog">
-            <button class="btn btn-ghost text-base-content/50">取消</button>
-          </form>
+          <button
+            class="btn btn-ghost text-base-content"
+            @click="onCopyToNewItem"
+          >
+            复制到新项
+          </button>
           <button class="btn btn-primary" @click="onSave" :disabled="!canSave">
             <Save class="w-5" />
             保存

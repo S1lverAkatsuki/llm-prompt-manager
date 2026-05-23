@@ -2,8 +2,10 @@ import { ref, onBeforeUnmount } from "vue";
 import { Prompt } from "@/types";
 import { invoke } from "@tauri-apps/api/core";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { useErrorLog } from "@/composables/useErrorLog";
 
 export const usePromptList = () => {
+  const { pushErrorLog } = useErrorLog();
   const copiedId = ref<string | null>(null);
   const copyTimeout = ref<NodeJS.Timeout | null>(null);
 
@@ -15,7 +17,7 @@ export const usePromptList = () => {
     .then(data => (items.value = data))
     .catch(e => {
       items.value = [];
-      console.error(e);
+      pushErrorLog("加载提示词列表失败", e);
     });
 
   const toggleExpand = (id: string) =>
@@ -35,7 +37,7 @@ export const usePromptList = () => {
         copiedId.value = null;
       }, RESET_MILLISECOND);
     } catch (err: unknown) {
-      console.error(err);
+      pushErrorLog("复制到剪贴板失败", err);
     }
   };
 
@@ -53,7 +55,7 @@ export const usePromptList = () => {
       try {
         await invoke("reorder", { orderedIds });
       } catch (e) {
-        console.error(e);
+        pushErrorLog("排序提示词失败", e);
       }
     }, 500);
   };

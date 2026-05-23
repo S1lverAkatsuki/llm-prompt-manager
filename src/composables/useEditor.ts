@@ -3,12 +3,14 @@ import type { Ref, ShallowRef } from "vue";
 import { Prompt, PromptData } from "@/types";
 import { MAX_TAG_LENGTH } from "@/constants.ts";
 import { invoke } from "@tauri-apps/api/core";
+import { useErrorLog } from "@/composables/useErrorLog";
 
 export const useEditor = (
   items: Ref<Prompt[] | null>,
   editorContextInputRef: Readonly<ShallowRef<HTMLInputElement | null>>,
   editAreaRef: Readonly<ShallowRef<HTMLDivElement | null>>
 ) => {
+  const { pushErrorLog } = useErrorLog();
   const deletedTimeout = ref<NodeJS.Timeout | null>(null);
 
   const tagInput = ref<string>("");
@@ -88,7 +90,7 @@ export const useEditor = (
           items.value.push(createdPrompt);
         }
       } catch (e) {
-        console.error(e);
+        pushErrorLog("创建提示词失败", e);
       }
       return true;
     }
@@ -108,7 +110,7 @@ export const useEditor = (
           newPrompt: updatedPrompt,
         });
       } catch (e) {
-        console.error(e);
+        pushErrorLog("更新提示词失败", e);
       }
       items.value[index] = updatedPrompt;
     }
@@ -123,7 +125,7 @@ export const useEditor = (
       try {
         await invoke("delete", { deletedId: editingId.value });
       } catch (e) {
-        console.error(e);
+        pushErrorLog("删除提示词失败", e);
       }
 
       items.value = items.value.filter(item => item.id !== editingId.value);
@@ -162,9 +164,16 @@ export const useEditor = (
       initHeight = el.clientHeight;
     }
 
+    const computedStyle = window.getComputedStyle(el);
+    const borderHeight =
+      Number.parseFloat(computedStyle.borderTopWidth) +
+      Number.parseFloat(computedStyle.borderBottomWidth);
+    const safetyBuffer = 8;
+    const nextHeight = el.scrollHeight + borderHeight + safetyBuffer;
+
     el.style.height = "auto";
-    el.style.minHeight = `${Math.max(el.scrollHeight, initHeight)}px`;
-    el.style.height = `${el.scrollHeight}px`;
+    el.style.minHeight = `${Math.max(nextHeight, initHeight)}px`;
+    el.style.height = `${nextHeight}px`;
 
     editAreaRef.value.scrollTop = parentScroll;
   };
