@@ -25,9 +25,7 @@ let observer: MutationObserver | null = null;
 
 onMounted(() => {
   updateTeleportTarget();
-  observer = new MutationObserver(() => {
-    updateTeleportTarget();
-  });
+  observer = new MutationObserver(updateTeleportTarget);
   observer.observe(document.body, {
     attributes: true,
     childList: true,
@@ -55,7 +53,10 @@ onBeforeUnmount(() => {
         ]"
       >
         <span>{{ toast.message }}</span>
-        <button class="btn btn-ghost btn-xs ml-auto" @click="removeToast(toast.id)">
+        <button
+          class="btn btn-ghost btn-xs ml-auto"
+          @click="removeToast(toast.id)"
+        >
           关闭
         </button>
       </div>

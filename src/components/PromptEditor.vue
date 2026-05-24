@@ -397,6 +397,7 @@ const onCopyToNewItem = () => {
           <button
             class="btn btn-ghost text-base-content"
             @click="onCopyToNewItem"
+            v-show="!isEditorInCreateMode"
           >
             复制到新项
           </button>
